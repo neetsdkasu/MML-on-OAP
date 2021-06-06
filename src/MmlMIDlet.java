@@ -1,3 +1,4 @@
+import java.io.*;
 import javax.microedition.lcdui.Alert;
 import javax.microedition.lcdui.AlertType;
 import javax.microedition.lcdui.Command;
@@ -8,14 +9,19 @@ import javax.microedition.lcdui.List;
 import javax.microedition.lcdui.TextBox;
 import javax.microedition.lcdui.TextField;
 import javax.microedition.lcdui.Ticker;
+import javax.microedition.media.Manager;
+import javax.microedition.media.Player;
+import javax.microedition.media.control.ToneControl;
 import javax.microedition.midlet.*;
 import javax.microedition.rms.*;
 
 public final class MmlMIDlet extends MIDlet implements CommandListener
 {
+    Player player = null;
+
     List mainDisp;
     TextBox titleBox, codingBox;
-    Alert confirmDelete;
+    Alert confirmDelete, confirmBack;
 
     Command exitCommand,
             newCommand,
@@ -26,8 +32,10 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             codingPlayCommand,
             codingStopCommand,
             codingDeleteCommand,
+            cancelDeleteCommand,
             doDeleteCommand,
-            cancelDeleteCommand;
+            cancelBackCommand,
+            goBackCommand;
 
     RecordStore currentRecord = null;
 
@@ -37,8 +45,10 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         titleBox = new TextBox("INPUT TITLE", "", 28, TextField.ANY);
         codingBox = new TextBox("INPUT MML", "", 5000, TextField.ANY);
         confirmDelete = new Alert("CONFIRM", "", null, AlertType.WARNING);
+        confirmBack = new Alert("CONFIRM", "GO BACK WITHOUT SAVING ??", null, AlertType.WARNING);
 
         confirmDelete.setTimeout(Alert.FOREVER);
+        confirmBack.setTimeout(Alert.FOREVER);
 
         exitCommand = new Command("EXIT", Command.EXIT, 1);
         mainDisp.addCommand(exitCommand);
@@ -66,10 +76,16 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         doDeleteCommand = new Command("DELETE", Command.SCREEN, 2);
         confirmDelete.addCommand(doDeleteCommand);
 
+        cancelBackCommand = new Command("CANCEL", Command.CANCEL, 1);
+        confirmBack.addCommand(cancelBackCommand);
+        goBackCommand = new Command("GOBACK", Command.SCREEN, 2);
+        confirmBack.addCommand(goBackCommand);
+
         mainDisp.setCommandListener(this);
         titleBox.setCommandListener(this);
         codingBox.setCommandListener(this);
         confirmDelete.setCommandListener(this);
+        confirmBack.setCommandListener(this);
 
         String[] mmlList = RecordStore.listRecordStores();
         if (mmlList != null)
@@ -101,6 +117,12 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             saveMml(null);
             try { currentRecord.closeRecordStore(); } catch (Exception ex) {}
             currentRecord = null;
+        }
+        if (player != null)
+        {
+            try { player.stop(); } catch (Exception ex) {}
+            try { player.close(); } catch (Exception ex) {}
+            player = null;
         }
     }
 
@@ -141,24 +163,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         {
             if (cmd == codingBackCommand)
             {
-                if (currentRecord != null)
-                {
-                    if (!saveMml(codingBox))
-                    {
-                        return;
-                    }
-                    try { currentRecord.closeRecordStore(); } catch (Exception ex) {}
-                    currentRecord = null;
-                    Alert alert = new Alert("INFO", "SAVED! AND GO BACK!", null, AlertType.CONFIRMATION);
-                    Display.getDisplay(this).setCurrent(alert, mainDisp);
-                }
-                else
-                {
-                    Alert alert = new Alert("ERROR", "WITHOUT SAVING... AND GO BACK.", null, AlertType.ERROR);
-                    Display.getDisplay(this).setCurrent(alert, mainDisp);
-                    mainDisp.setTicker(new Ticker("UNKNOWN ERROR"));
-                }
-                codingBox.setTicker(null);
+                Display.getDisplay(this).setCurrent(confirmBack);
             }
             else if (cmd == codingSaveCommand)
             {
@@ -171,11 +176,14 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             }
             else if (cmd == codingPlayCommand)
             {
-                // TODO
+                playMml();
             }
             else if (cmd == codingStopCommand)
             {
-                // TODO
+                if (player != null)
+                {
+                    try { player.stop(); } catch (Exception ex) {}
+                }
             }
             else if (cmd == codingDeleteCommand)
             {
@@ -193,6 +201,29 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             else if (cmd == doDeleteCommand)
             {
                 deleteMml();
+            }
+        }
+        else if (disp == confirmBack)
+        {
+            if (cmd == cancelBackCommand)
+            {
+                Display.getDisplay(this).setCurrent(codingBox);
+            }
+            else if (cmd == goBackCommand)
+            {
+                if (currentRecord != null)
+                {
+                    try { currentRecord.closeRecordStore(); } catch (Exception ex) {}
+                    currentRecord = null;
+                }
+                if (player != null)
+                {
+                    try { player.stop(); } catch (Exception ex) {}
+                }
+                Alert alert = new Alert("INFO", "GO BACK!", null, AlertType.CONFIRMATION);
+                Display.getDisplay(this).setCurrent(alert, mainDisp);
+                mainDisp.setTicker(null);
+                codingBox.setTicker(null);
             }
         }
     }
@@ -430,4 +461,127 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         Alert alert = new Alert("INFO", msg, null, AlertType.CONFIRMATION);
         Display.getDisplay(this).setCurrent(alert, mainDisp);
     }
+
+    private void playMml()
+    {
+        String mml = codingBox.getString();
+        if (mml == null || (mml = mml.trim()).length() == 0)
+        {
+            codingBox.setTicker(new Ticker("CODE IS EMPTY!"));
+            return;
+        }
+        byte[] sequence = parseMml(mml);
+        if (sequence == null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (player == null)
+            {
+                player = Manager.createPlayer(Manager.TONE_DEVICE_LOCATOR);
+            }
+            if (player.getState() == Player.STARTED)
+            {
+                player.stop();
+            }
+            player.deallocate();
+            player.realize();
+            ToneControl tc = (ToneControl)player.getControl("ToneControl");
+            tc.setSequence(sequence);
+            player.start();
+        }
+        catch (Exception ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, codingBox);
+            codingBox.setTicker(new Ticker("UNKNOWN ERROR"));
+            if (player != null)
+            {
+                try { player.stop(); } catch (Exception ex2) {}
+                try { player.close(); } catch (Exception ex2) {}
+                player = null;
+            }
+        }
+    }
+
+    private byte[] parseMml(String mml)
+    {
+        ByteArrayOutputStream buf = null;
+
+        try
+        {
+            buf = new ByteArrayOutputStream();
+            buf.write(ToneControl.VERSION);
+            buf.write(1);
+
+            for (int i = 0; i < mml.length(); i++)
+            {
+                char ch = mml.charAt(i);
+                switch (ch)
+                {
+                    case 'c':
+                    case 'C':
+                        buf.write(ToneControl.C4);
+                        buf.write(16);
+                        break;
+                    case 'd':
+                    case 'D':
+                        buf.write(ToneControl.C4 + 2);
+                        buf.write(16);
+                        break;
+                    case 'e':
+                    case 'E':
+                        buf.write(ToneControl.C4 + 4);
+                        buf.write(16);
+                        break;
+                    case 'f':
+                    case 'F':
+                        buf.write(ToneControl.C4 + 5);
+                        buf.write(16);
+                        break;
+                    case 'g':
+                    case 'G':
+                        buf.write(ToneControl.C4 + 7);
+                        buf.write(16);
+                        break;
+                    case 'a':
+                    case 'A':
+                        buf.write(ToneControl.C4 + 9);
+                        buf.write(16);
+                        break;
+                    case 'b':
+                    case 'B':
+                        buf.write(ToneControl.C4 + 11);
+                        buf.write(16);
+                        break;
+                    case 'r':
+                    case 'R':
+                        buf.write(ToneControl.SILENCE);
+                        buf.write(16);
+                        break;
+                }
+            }
+
+            byte[] data = buf.toByteArray();
+            return data;
+        }
+        catch (Exception ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, codingBox);
+            codingBox.setTicker(new Ticker("UNKNOWN ERROR"));
+            return null;
+        }
+        finally
+        {
+            if (buf != null)
+            {
+                try { buf.close(); } catch (Exception ex) {}
+                buf = null;
+            }
+        }
+    }
+
 }
