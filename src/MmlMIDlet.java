@@ -1,3 +1,5 @@
+import javax.microedition.lcdui.Alert;
+import javax.microedition.lcdui.AlertType;
 import javax.microedition.lcdui.Command;
 import javax.microedition.lcdui.CommandListener;
 import javax.microedition.lcdui.Display;
@@ -5,127 +7,427 @@ import javax.microedition.lcdui.Displayable;
 import javax.microedition.lcdui.List;
 import javax.microedition.lcdui.TextBox;
 import javax.microedition.lcdui.TextField;
+import javax.microedition.lcdui.Ticker;
 import javax.microedition.midlet.*;
+import javax.microedition.rms.*;
 
 public final class MmlMIDlet extends MIDlet implements CommandListener
 {
-	List mainDisp;
-	TextBox titleBox, codingBox;
-	
-	Command exitCommand, 
-			newCommand,
-			titleOkCommand,
-			titleCancelCommand,
-			codingBackCommand,
-			codingSaveCommand,
-			codingPlayCommand,
-			codingStopCommand,
-			codingDeleteCommand;
-	
-	public MmlMIDlet()
-	{
-		mainDisp = new List("MML on OAP", List.IMPLICIT);
-		titleBox = new TextBox("INPUT TITLE", "", 32, TextField.ANY);
-		codingBox = new TextBox("INPUT MML", "", 5000, TextField.ANY);
-		
-		exitCommand = new Command("EXIT", Command.EXIT, 1);
-		mainDisp.addCommand(exitCommand);
-		newCommand = new Command("NEW", Command.SCREEN, 2);
-		mainDisp.addCommand(newCommand);
-		
-		titleCancelCommand = new Command("CANCEL", Command.CANCEL, 1);
-		titleBox.addCommand(titleCancelCommand);
-		titleOkCommand = new Command("OK", Command.OK, 2);
-		titleBox.addCommand(titleOkCommand);
-		
-		codingBackCommand = new Command("BACK", Command.BACK, 1);
-		codingBox.addCommand(codingBackCommand);
-		codingSaveCommand = new Command("SAVE", Command.SCREEN, 2);
-		codingBox.addCommand(codingSaveCommand);
-		codingPlayCommand = new Command("PLAY", Command.SCREEN, 3);
-		codingBox.addCommand(codingPlayCommand);
-		codingStopCommand = new Command("STOP", Command.SCREEN, 4);
-		codingBox.addCommand(codingStopCommand);
-		codingDeleteCommand = new Command("DELETE", Command.SCREEN, 5);
-		codingBox.addCommand(codingDeleteCommand);
-		
-		mainDisp.setCommandListener(this);
-		titleBox.setCommandListener(this);
-		codingBox.setCommandListener(this);
-		
-		Display.getDisplay(this).setCurrent(mainDisp);
-	}
+    List mainDisp;
+    TextBox titleBox, codingBox;
+    Alert confirmDelete;
 
-	// @Override
-	protected void startApp() throws MIDletStateChangeException
-	{
-		
-	}
+    Command exitCommand,
+            newCommand,
+            titleOkCommand,
+            titleCancelCommand,
+            codingBackCommand,
+            codingSaveCommand,
+            codingPlayCommand,
+            codingStopCommand,
+            codingDeleteCommand,
+            doDeleteCommand,
+            cancelDeleteCommand;
 
-	// @Override
-	protected void pauseApp() {}
+    RecordStore currentRecord = null;
 
-	// @Override
-	protected void destroyApp(boolean unconditional) throws MIDletStateChangeException
-	{
-		
-	}
+    public MmlMIDlet()
+    {
+        mainDisp = new List("MML on OAP", List.IMPLICIT);
+        titleBox = new TextBox("INPUT TITLE", "", 28, TextField.ANY);
+        codingBox = new TextBox("INPUT MML", "", 5000, TextField.ANY);
+        confirmDelete = new Alert("CONFIRM", "", null, AlertType.WARNING);
 
-	// CommandListener.commandAction
-	public void commandAction(Command cmd, Displayable disp)
-	{
-		if (disp == mainDisp)
-		{
-			if (cmd == exitCommand)
-			{
-				notifyDestroyed();
-			}
-			else if (cmd == newCommand)
-			{
-				titleBox.setString(null);
-				titleBox.setTicker(null);
-				Display.getDisplay(this).setCurrent(titleBox);
-			}
-			else if (cmd == List.SELECT_COMMAND)
-			{
-				Display.getDisplay(this).setCurrent(codingBox);
-			}
-		}
-		else if (disp == titleBox)
-		{
-			if (cmd == titleCancelCommand)
-			{
-				Display.getDisplay(this).setCurrent(mainDisp);
-			}
-			else if (cmd == titleOkCommand)
-			{
-				mainDisp.append(titleBox.getString(), null);
-				Display.getDisplay(this).setCurrent(mainDisp);				
-			}
-		}
-		else if (disp == codingBox)
-		{
-			if (cmd == codingBackCommand)
-			{
-				Display.getDisplay(this).setCurrent(mainDisp);
-			}
-			else if (cmd == codingSaveCommand)
-			{
-				
-			}
-			else if (cmd == codingPlayCommand)
-			{
-				
-			}
-			else if (cmd == codingStopCommand)
-			{
-				
-			}
-			else if (cmd == codingDeleteCommand)
-			{
-				
-			}
-		}
-	}
+        confirmDelete.setTimeout(Alert.FOREVER);
 
+        exitCommand = new Command("EXIT", Command.EXIT, 1);
+        mainDisp.addCommand(exitCommand);
+        newCommand = new Command("NEW", Command.SCREEN, 2);
+        mainDisp.addCommand(newCommand);
+
+        titleCancelCommand = new Command("CANCEL", Command.CANCEL, 1);
+        titleBox.addCommand(titleCancelCommand);
+        titleOkCommand = new Command("OK", Command.OK, 2);
+        titleBox.addCommand(titleOkCommand);
+
+        codingBackCommand = new Command("BACK", Command.BACK, 1);
+        codingBox.addCommand(codingBackCommand);
+        codingSaveCommand = new Command("SAVE", Command.SCREEN, 2);
+        codingBox.addCommand(codingSaveCommand);
+        codingPlayCommand = new Command("PLAY", Command.SCREEN, 3);
+        codingBox.addCommand(codingPlayCommand);
+        codingStopCommand = new Command("STOP", Command.SCREEN, 4);
+        codingBox.addCommand(codingStopCommand);
+        codingDeleteCommand = new Command("DELETE", Command.SCREEN, 5);
+        codingBox.addCommand(codingDeleteCommand);
+
+        cancelDeleteCommand = new Command("CANCEL", Command.CANCEL, 1);
+        confirmDelete.addCommand(cancelDeleteCommand);
+        doDeleteCommand = new Command("DELETE", Command.SCREEN, 2);
+        confirmDelete.addCommand(doDeleteCommand);
+
+        mainDisp.setCommandListener(this);
+        titleBox.setCommandListener(this);
+        codingBox.setCommandListener(this);
+        confirmDelete.setCommandListener(this);
+
+        String[] mmlList = RecordStore.listRecordStores();
+        if (mmlList != null)
+        {
+            for (int i = 0; i < mmlList.length; i++)
+            {
+                String mml = mmlList[i];
+                if (mml != null && mml.startsWith("mml."))
+                {
+                    mainDisp.append(mml.substring(4), null);
+                }
+            }
+        }
+
+        Display.getDisplay(this).setCurrent(mainDisp);
+    }
+
+    // @Override MIDlet.startApp
+    protected void startApp() throws MIDletStateChangeException {}
+
+    // @Override MIDlet.pauseApp
+    protected void pauseApp() {}
+
+    // @Override MIDlet.destroyApp
+    protected void destroyApp(boolean unconditional) throws MIDletStateChangeException
+    {
+        if (currentRecord != null)
+        {
+            saveMml(null);
+            try { currentRecord.closeRecordStore(); } catch (Exception ex) {}
+            currentRecord = null;
+        }
+    }
+
+    // implement CommandListener.commandAction
+    public void commandAction(Command cmd, Displayable disp)
+    {
+        if (disp == mainDisp)
+        {
+            if (cmd == exitCommand)
+            {
+                notifyDestroyed();
+            }
+            else if (cmd == newCommand)
+            {
+                mainDisp.setTicker(null);
+                titleBox.setString(null);
+                titleBox.setTicker(null);
+                Display.getDisplay(this).setCurrent(titleBox);
+            }
+            else if (cmd == List.SELECT_COMMAND)
+            {
+                loadMml();
+            }
+        }
+        else if (disp == titleBox)
+        {
+            if (cmd == titleCancelCommand)
+            {
+                titleBox.setTicker(null);
+                Display.getDisplay(this).setCurrent(mainDisp);
+            }
+            else if (cmd == titleOkCommand)
+            {
+                makeNewMml();
+            }
+        }
+        else if (disp == codingBox)
+        {
+            if (cmd == codingBackCommand)
+            {
+                if (currentRecord != null)
+                {
+                    if (!saveMml(codingBox))
+                    {
+                        return;
+                    }
+                    try { currentRecord.closeRecordStore(); } catch (Exception ex) {}
+                    currentRecord = null;
+                    Alert alert = new Alert("INFO", "SAVED! AND GO BACK!", null, AlertType.CONFIRMATION);
+                    Display.getDisplay(this).setCurrent(alert, mainDisp);
+                }
+                else
+                {
+                    Alert alert = new Alert("ERROR", "WITHOUT SAVING... AND GO BACK.", null, AlertType.ERROR);
+                    Display.getDisplay(this).setCurrent(alert, mainDisp);
+                    mainDisp.setTicker(new Ticker("UNKNOWN ERROR"));
+                }
+                codingBox.setTicker(null);
+            }
+            else if (cmd == codingSaveCommand)
+            {
+                if (saveMml(codingBox))
+                {
+                    Alert alert = new Alert("INFO", "SAVED!", null, AlertType.CONFIRMATION);
+                    Display.getDisplay(this).setCurrent(alert, codingBox);
+                    codingBox.setTicker(null);
+                }
+            }
+            else if (cmd == codingPlayCommand)
+            {
+                // TODO
+            }
+            else if (cmd == codingStopCommand)
+            {
+                // TODO
+            }
+            else if (cmd == codingDeleteCommand)
+            {
+                String msg = "DELETE ?? " + codingBox.getTitle();
+                confirmDelete.setString(msg);
+                Display.getDisplay(this).setCurrent(confirmDelete);
+            }
+        }
+        else if (disp == confirmDelete)
+        {
+            if (cmd == cancelDeleteCommand)
+            {
+                Display.getDisplay(this).setCurrent(codingBox);
+            }
+            else if (cmd == doDeleteCommand)
+            {
+                deleteMml();
+            }
+        }
+    }
+
+    private boolean saveMml(Displayable disp)
+    {
+        if (currentRecord == null)
+        {
+            if (disp != null)
+            {
+                disp.setTicker(new Ticker("NO OPEN STORAGE"));
+            }
+            return false;
+        }
+        String mml = codingBox.getString();
+        byte[] data = null;
+        if (mml == null)
+        {
+            data = new byte[0];
+        }
+        else
+        {
+            data = mml.getBytes();
+        }
+        try
+        {
+            int num = currentRecord.getNumRecords();
+            if (num == 0)
+            {
+                currentRecord.addRecord(data, 0, data.length);
+            }
+            else
+            {
+                currentRecord.setRecord(1, data, 0, data.length);
+            }
+            return true;
+        }
+        catch (RecordStoreFullException ex)
+        {
+            if (disp != null)
+            {
+                disp.setTicker(new Ticker("STORAGE IS FULL!"));
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            if (disp != null)
+            {
+                Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+                Display.getDisplay(this).setCurrent(alert, disp);
+                disp.setTicker(new Ticker("UNKNOWN ERROR"));
+            }
+            return false;
+        }
+    }
+
+    private void loadMml()
+    {
+        int index = mainDisp.getSelectedIndex();
+        String title = mainDisp.getString(index);
+        if (title == null)
+        {
+            mainDisp.setTicker(new Ticker("WRONG NAME"));
+            return;
+        }
+        String rsName = "mml." + title;
+
+        String mml = "";
+        try
+        {
+            currentRecord = RecordStore.openRecordStore(rsName, false);
+            if (currentRecord.getNumRecords() > 0)
+            {
+                byte[] data = currentRecord.getRecord(1);
+                if (data != null && data.length > 0)
+                {
+                    mml = new String(data);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, mainDisp);
+            mainDisp.setTicker(new Ticker("UNKNOWN ERROR"));
+            if (currentRecord != null)
+            {
+                try { currentRecord.closeRecordStore(); } catch (Exception ex2) {}
+                currentRecord = null;
+            }
+            return;
+        }
+
+        codingBox.setTitle(title);
+        codingBox.setString(mml);
+
+        mainDisp.setTicker(null);
+        codingBox.setTicker(null);
+        Display.getDisplay(this).setCurrent(codingBox);
+    }
+
+    private void makeNewMml()
+    {
+        String title = titleBox.getString();
+        if (title == null || (title = title.trim()).length() == 0)
+        {
+            titleBox.setTicker(new Ticker("TITLE IS EMPTY!"));
+            return;
+        }
+
+        String rsName = "mml." + title;
+
+        RecordStore rs = null;
+
+        // check RecordStore Name
+        try
+        {
+            rs = RecordStore.openRecordStore(rsName, false);
+            titleBox.setTicker(new Ticker("ALREADY EXISTS!"));
+            return;
+        }
+        catch (IllegalArgumentException ex)
+        {
+            // createIfNecessary == false
+            // unreachable here ?
+            titleBox.setTicker(new Ticker("INVALID NAME!"));
+            return;
+        }
+        catch (RecordStoreNotFoundException ex)
+        {
+            // Ok
+        }
+        catch (RecordStoreFullException ex)
+        {
+            // createIfNecessary == false
+            // unreachable here ?
+            titleBox.setTicker(new Ticker("STORAGE IS FULL!"));
+            return;
+        }
+        catch (RecordStoreException ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, titleBox);
+            titleBox.setTicker(new Ticker("UNKNOWN ERROR"));
+            return;
+        }
+        finally
+        {
+            if (rs != null)
+            {
+                try { rs.closeRecordStore(); } catch (Exception ex) {}
+                rs = null;
+            }
+        }
+
+        // create New RecordStore
+        try
+        {
+            rs = RecordStore.openRecordStore(rsName, true);
+            currentRecord = rs;
+            rs = null;
+        }
+        catch (IllegalArgumentException ex)
+        {
+            titleBox.setTicker(new Ticker("INVALID NAME!"));
+            return;
+        }
+        catch (RecordStoreFullException ex)
+        {
+            titleBox.setTicker(new Ticker("STORAGE IS FULL!"));
+            return;
+        }
+        catch (RecordStoreException ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, titleBox);
+            titleBox.setTicker(new Ticker("UNKNOWN ERROR"));
+            return;
+        }
+        finally
+        {
+            if (rs != null)
+            {
+                try { rs.closeRecordStore(); } catch (Exception ex) {}
+                rs = null;
+            }
+        }
+
+        mainDisp.append(title, null);
+        codingBox.setTitle(title);
+
+        mainDisp.setTicker(null);
+        titleBox.setTicker(null);
+        codingBox.setTicker(null);
+        Display.getDisplay(this).setCurrent(codingBox);
+    }
+
+    private void deleteMml()
+    {
+        String title = codingBox.getTitle();
+
+        if (currentRecord != null)
+        {
+            try { currentRecord.closeRecordStore(); } catch (Exception ex) {}
+            currentRecord = null;
+        }
+
+        String rsName = "mml." + title;
+
+        try
+        {
+            RecordStore.deleteRecordStore(rsName);
+        }
+        catch (Exception ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, mainDisp);
+            mainDisp.setTicker(new Ticker("UNKNOWN ERROR"));
+            codingBox.setTicker(null);
+            return;
+        }
+
+        for (int i = 0; i < mainDisp.size(); i++)
+        {
+            if (title.equals(mainDisp.getString(i)))
+            {
+                mainDisp.delete(i);
+                break;
+            }
+        }
+        codingBox.setTicker(null);
+        mainDisp.setTicker(null);
+        String msg = "DELTED! " + title;
+        Alert alert = new Alert("INFO", msg, null, AlertType.CONFIRMATION);
+        Display.getDisplay(this).setCurrent(alert, mainDisp);
+    }
 }
