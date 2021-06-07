@@ -467,7 +467,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         String mml = codingBox.getString();
         if (mml == null || (mml = mml.trim()).length() == 0)
         {
-            codingBox.setTicker(new Ticker("CODE IS EMPTY!"));
+            Alert alert = new Alert("ERROR", "CODE IS EMPTY", null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, codingBox);
             return;
         }
         byte[] sequence = parseMml(mml);
@@ -513,55 +514,14 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         try
         {
             buf = new ByteArrayOutputStream();
-            buf.write(ToneControl.VERSION);
-            buf.write(1);
 
-            for (int i = 0; i < mml.length(); i++)
+            String error = Mml.parse(mml, buf);
+
+            if (error != null)
             {
-                char ch = mml.charAt(i);
-                switch (ch)
-                {
-                    case 'c':
-                    case 'C':
-                        buf.write(ToneControl.C4);
-                        buf.write(16);
-                        break;
-                    case 'd':
-                    case 'D':
-                        buf.write(ToneControl.C4 + 2);
-                        buf.write(16);
-                        break;
-                    case 'e':
-                    case 'E':
-                        buf.write(ToneControl.C4 + 4);
-                        buf.write(16);
-                        break;
-                    case 'f':
-                    case 'F':
-                        buf.write(ToneControl.C4 + 5);
-                        buf.write(16);
-                        break;
-                    case 'g':
-                    case 'G':
-                        buf.write(ToneControl.C4 + 7);
-                        buf.write(16);
-                        break;
-                    case 'a':
-                    case 'A':
-                        buf.write(ToneControl.C4 + 9);
-                        buf.write(16);
-                        break;
-                    case 'b':
-                    case 'B':
-                        buf.write(ToneControl.C4 + 11);
-                        buf.write(16);
-                        break;
-                    case 'r':
-                    case 'R':
-                        buf.write(ToneControl.SILENCE);
-                        buf.write(16);
-                        break;
-                }
+                Alert alert = new Alert("ERROR", error, null, AlertType.ERROR);
+                Display.getDisplay(this).setCurrent(alert, codingBox);
+                return null;
             }
 
             byte[] data = buf.toByteArray();
