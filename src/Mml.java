@@ -271,6 +271,10 @@ class Mml
                 event += 2;
             }
             else if (hasError()) { return -1; }
+            else if (parseNoteValue(dst)) {
+                event += 2;
+            }
+            else if (hasError()) { return -1; }
             else if (parsePlayBlock(dst)) {}
             else if (hasError()) { return -1; }
             else if (parseRepeat(dst)) {}
@@ -647,6 +651,7 @@ class Mml
 
     boolean parseChangeDuration()
     {
+        // REQUIRE skipWhitespace(), hasChar() == true
         char ch = getChar();
         if (ch != 'L' && ch != 'l') { return false; }
         if (!nextChar())
@@ -665,6 +670,51 @@ class Mml
         if (hasError()) { return false; }
 
         duration = dur;
+        return true;
+    }
+
+    boolean parseNoteValue(OutputStream dst) throws IOException
+    {
+        // REQUIRE skipWhitespace(), hasChar() == true
+        char ch = getChar();
+        if (ch != 'N' && ch != 'n') { return false; }
+        if (!nextChar())
+        {
+            error = "INVALID NOTE VALUE";
+            return false;
+        }
+        if (getChar() != '(')
+        {
+            error = "INVALID NOTE VALUE START";
+            return false;
+        }
+        if (!nextChar())
+        {
+            error = "INVALID NOTE VALUE";
+            return false;
+        }
+        if (!isDigit())
+        {
+            error = "INVALID NOTE VALUE";
+            return false;
+        }
+        int note = parseNumber();
+        if (note < 0 || 127 < note)
+        {
+            error = "INVALID NOTE VALUE";
+            return false;
+        }
+        if (getChar() != ')')
+        {
+            error = "INVALID NOTE VALUE END";
+            return false;
+        }
+        nextChar();
+        int dur = parseDuration();
+        if (hasError()) { return false; }
+
+        dst.write(note);
+        dst.write(dur);
         return true;
     }
 }
