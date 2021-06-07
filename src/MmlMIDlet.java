@@ -5,6 +5,7 @@ import javax.microedition.lcdui.Command;
 import javax.microedition.lcdui.CommandListener;
 import javax.microedition.lcdui.Display;
 import javax.microedition.lcdui.Displayable;
+import javax.microedition.lcdui.Form;
 import javax.microedition.lcdui.List;
 import javax.microedition.lcdui.TextBox;
 import javax.microedition.lcdui.TextField;
@@ -22,6 +23,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
     List mainDisp;
     TextBox titleBox, codingBox;
     Alert confirmDelete, confirmBack;
+    Form helpViewer = null;
 
     Command exitCommand,
             newCommand,
@@ -35,7 +37,9 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             cancelDeleteCommand,
             doDeleteCommand,
             cancelBackCommand,
-            goBackCommand;
+            goBackCommand,
+            helpCommand = null,
+            closeHelpCommand = null;
 
     RecordStore currentRecord = null;
 
@@ -100,6 +104,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             }
         }
 
+        loadHelpText();
+
         Display.getDisplay(this).setCurrent(mainDisp);
     }
 
@@ -129,6 +135,10 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
     // implement CommandListener.commandAction
     public void commandAction(Command cmd, Displayable disp)
     {
+        if (cmd == null || disp == null)
+        {
+            return;
+        }
         if (disp == mainDisp)
         {
             if (cmd == exitCommand)
@@ -191,6 +201,13 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
                 confirmDelete.setString(msg);
                 Display.getDisplay(this).setCurrent(confirmDelete);
             }
+            else if (cmd == helpCommand)
+            {
+                if (helpViewer != null)
+                {
+                    Display.getDisplay(this).setCurrent(helpViewer);
+                }
+            }
         }
         else if (disp == confirmDelete)
         {
@@ -224,6 +241,13 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
                 Display.getDisplay(this).setCurrent(alert, mainDisp);
                 mainDisp.setTicker(null);
                 codingBox.setTicker(null);
+            }
+        }
+        else if (disp == helpViewer)
+        {
+            if (cmd == closeHelpCommand)
+            {
+                Display.getDisplay(this).setCurrent(codingBox);
             }
         }
     }
@@ -544,4 +568,40 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         }
     }
 
+    void loadHelpText()
+    {
+        InputStream src = null;
+        try
+        {
+            src = getClass().getResourceAsStream("/help.txt");
+            if (src == null) { return; }
+            byte[] buf = new byte[16];
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            for (;;)
+            {
+                int len = src.read(buf);
+                if (len < 0) { break; }
+                baos.write(buf, 0, len);
+            }
+            String text = new String(baos.toByteArray(), "UTF-8");
+            helpViewer = new Form("HELP");
+            helpViewer.append(text);
+
+            closeHelpCommand = new Command("BACK", Command.BACK, 1);
+            helpViewer.addCommand(closeHelpCommand);
+
+            helpCommand = new Command("HELP", Command.SCREEN, 6);
+            codingBox.addCommand(helpCommand);
+
+            helpViewer.setCommandListener(this);
+        }
+        catch (Exception ex) {}
+        finally
+        {
+            if (src != null)
+            {
+                try { src.close(); } catch (Exception ex) {}
+            }
+        }
+    }
 }
