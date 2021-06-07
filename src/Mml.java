@@ -333,22 +333,10 @@ class Mml
         }
 
         int num = parseNumber();
-        switch (num)
+        if (num < 1 || resolution < num)
         {
-            case 1:
-            case 2:
-            case 4:
-            case 8:
-            case 16:
-            case 32:
-            case 64:
-                if (num <= resolution)
-                {
-                    break;
-                }
-            default:
-                error = "INVALID LENGTH";
-                return -1;
+            error = "INVALID LENGTH";
+            return -1;
         }
         int dur = Math.max(1, resolution / num);
         while (hasChar() && getChar() == '.')
