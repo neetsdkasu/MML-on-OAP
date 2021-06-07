@@ -382,31 +382,31 @@ class Mml
         {
             case 'C':
             case 'c':
-                note += 1;
+                note += 0;
                 break;
             case 'D':
             case 'd':
-                note += 3;
+                note += 2;
                 break;
             case 'E':
             case 'e':
-                note += 5;
+                note += 4;
                 break;
             case 'F':
             case 'f':
-                note += 6;
+                note += 5;
                 break;
             case 'G':
             case 'g':
-                note += 8;
+                note += 7;
                 break;
             case 'A':
             case 'a':
-                note += 10;
+                note += 9;
                 break;
             case 'B':
             case 'b':
-                note += 12;
+                note += 11;
                 break;
             default:
                 return false;
