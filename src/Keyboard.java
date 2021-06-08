@@ -56,7 +56,7 @@ final class Keyboard extends Canvas
         }
         else
         {
-            g.setColor(0xF000F0);
+            g.setColor(0xF070F0);
             for (int i = 0; i < 2; i++)
             {
                 g.drawSubstring("12", i, 1, i * 30 + 27, 65, Graphics.LEFT | Graphics.TOP);
