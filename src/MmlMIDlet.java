@@ -599,7 +599,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         InputStream src = null;
         try
         {
-            src = getClass().getResourceAsStream("/help.txt");
+            src = Class.class.getResourceAsStream("/help.txt");
             if (src == null) { return; }
             byte[] buf = new byte[16];
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
