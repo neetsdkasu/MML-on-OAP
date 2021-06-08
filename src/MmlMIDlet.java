@@ -464,6 +464,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
 
         mainDisp.append(title, null);
         codingBox.setTitle(title);
+        codingBox.setString(null);
 
         mainDisp.setTicker(null);
         titleBox.setTicker(null);
