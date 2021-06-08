@@ -56,7 +56,7 @@ final class Keyboard extends Canvas
         }
         else
         {
-            g.setColor(0xB000B0);
+            g.setColor(0xF000F0);
             for (int i = 0; i < 2; i++)
             {
                 g.drawSubstring("12", i, 1, i * 30 + 27, 65, Graphics.LEFT | Graphics.TOP);
@@ -110,9 +110,6 @@ final class Keyboard extends Canvas
             }
             g.drawString("#", 151, 221, Graphics.LEFT | Graphics.TOP);
 
-            // g.drawString("?", 71, 243, Graphics.LEFT | Graphics.TOP);
-            g.drawString("R", 111, 243, Graphics.LEFT | Graphics.TOP);
-            // g.drawString("?", 151, 243, Graphics.LEFT | Graphics.TOP);
         }
         else
         {
@@ -129,11 +126,19 @@ final class Keyboard extends Canvas
                 // g.drawString("?", 71, 221, Graphics.LEFT | Graphics.TOP);
                 // g.drawString("?", 101, 221, Graphics.LEFT | Graphics.TOP);
             }
+            g.setColor(0xF00070);
             g.drawString("#", 151, 221, Graphics.LEFT | Graphics.TOP);
+            g.setColor(0x000000);
+        }
 
-            // g.drawString("?", 71, 243, Graphics.LEFT | Graphics.TOP);
-            g.drawString("R", 111, 243, Graphics.LEFT | Graphics.TOP);
-            // g.drawString("?", 151, 243, Graphics.LEFT | Graphics.TOP);
+        if (volume > 0)
+        {
+            g.drawSubstring(VOLUME, (volume - 1) * 4, 4, 63, 243, Graphics.LEFT | Graphics.TOP);
+        }
+        g.drawString("R", 111, 243, Graphics.LEFT | Graphics.TOP);
+        if (volume < 9)
+        {
+            g.drawSubstring(VOLUME, (volume + 1) * 4, 4, 143, 243, Graphics.LEFT | Graphics.TOP);
         }
 
         switch (note)
@@ -267,6 +272,20 @@ final class Keyboard extends Canvas
                     {
                         repaint(0, 120, 180, 40);
                     }
+                }
+                break;
+            case KEY_STAR: // *
+                if (0 < volume)
+                {
+                    volume -= 1;
+                    repaint(12, 170, 180, 98);
+                }
+                break;
+            case KEY_POUND: // #
+                if (volume < 9)
+                {
+                    volume += 1;
+                    repaint(12, 170, 180, 98);
                 }
                 break;
         }
