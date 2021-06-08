@@ -20,6 +20,16 @@ final class Keyboard extends Canvas
     int volume = 9;
     int key_type = 0;
 
+    StringBuffer tempCode = new StringBuffer(40);
+    char[] tempBuffer = new char[40];
+    String[] code = new String[64];
+    int codeInsertPos = 0;
+    int codeCount = 0;
+
+    int lastOctave = 5;
+    int lastVolume = 9;
+    int lastTempCodeLength = -1;
+
     Keyboard()
     {
         boolean wtk = String
@@ -44,6 +54,22 @@ final class Keyboard extends Canvas
         g.setFont(smallFont);
 
         g.drawImage(backgroundImage, 0, 0, Graphics.LEFT | Graphics.TOP);
+
+        g.setColor(0x000000);
+        int codeY = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            int pos = (codeInsertPos - 3 + i + code.length) & 63;
+            if (code[pos] != null)
+            {
+                g.drawString(code[pos], 0, codeY, Graphics.LEFT | Graphics.TOP);
+                codeY += 12;
+            }
+        }
+        if (0 < tempCode.length())
+        {
+            g.drawChars(tempBuffer, 0, tempCode.length(), 0, codeY, Graphics.LEFT | Graphics.TOP);
+        }
 
         if (key_type == 0)
         {
@@ -130,7 +156,7 @@ final class Keyboard extends Canvas
             g.setColor(0x000000);
         }
 
-        if (volume > 0)
+        if (0 < volume)
         {
             g.drawSubstring(VOLUME, (volume - 1) * 4, 4, 63, 244, Graphics.LEFT | Graphics.TOP);
         }
@@ -203,6 +229,10 @@ final class Keyboard extends Canvas
         note = -1;
         switch (keyCode)
         {
+            case KEY_NUM0:
+                addRest();
+                repaint(0, 0, 240, 60);
+                break;
             case KEY_NUM1:
                 note = 0 + key_type;
                 break;
@@ -287,6 +317,14 @@ final class Keyboard extends Canvas
                     repaint(12, 170, 180, 98);
                 }
                 break;
+            case -8: // KEY_CLR
+                if (0 <= lastTempCodeLength)
+                {
+                    tempCode.setLength(lastTempCodeLength);
+                    repaint(0, 0, 240, 60);
+                    lastTempCodeLength = -1;
+                }
+                break;
         }
         if (note >= 0)
         {
@@ -294,9 +332,155 @@ final class Keyboard extends Canvas
             if (note_value <= 127)
             {
                 try { Manager.playTone(note_value, 200, 100); } catch (Exception ex) {}
+                addNote(note);
+                repaint();
             }
-            repaint(0, 60, 240, 60);
+            else
+            {
+                repaint(0, 60, 240, 60);
+            }
         }
+    }
+
+    void addRest()
+    {
+        if (40 < tempCode.length() + 4)
+        {
+            code[codeInsertPos] = tempCode.toString();
+            codeInsertPos = (codeInsertPos + 1) & 63;
+            if (codeCount < code.length) { codeCount++; }
+            tempCode.setLength(0);
+        }
+        lastTempCodeLength = tempCode.length();
+        tempCode.append('R')
+            .append(LENGTH.charAt((length << 2) + 1))
+            .append(LENGTH.charAt((length << 2) + 2))
+            .append(LENGTH.charAt((length << 2) + 3));
+        tempCode.getChars(0, tempCode.length(), tempBuffer, 0);
+        lastOctave = octave + (note == 12 ? 1 : 0);
+        lastVolume = volume;
+    }
+
+    void addNote(int note)
+    {
+        int len = 3;
+        if (lastVolume != volume) { len += 4; }
+        switch (Math.abs(octave - lastOctave + (note == 12 ? 1 : 0)))
+        {
+            case 0:
+                break;
+            case 1:
+                len += 2;
+                break;
+            default:
+                len += 3;
+                break;
+        }
+        switch (note)
+        {
+            case 0:
+            case 2:
+            case 4:
+            case 5:
+            case 7:
+            case 9:
+            case 11:
+            case 12:
+                len++;
+                break;
+            case 1:
+            case 3:
+            case 6:
+            case 8:
+            case 10:
+                len += 2;
+                break;
+        }
+        if (40 < tempCode.length() + len)
+        {
+            code[codeInsertPos] = tempCode.toString();
+            codeInsertPos = (codeInsertPos + 1) & 63;
+            if (codeCount < code.length) { codeCount++; }
+            tempCode.setLength(0);
+        }
+        lastTempCodeLength = tempCode.length();
+        if (lastVolume != volume)
+        {
+            tempCode.append(VOLUME.charAt(volume << 2))
+                .append(VOLUME.charAt((volume << 2) + 1))
+                .append(VOLUME.charAt((volume << 2) + 2))
+                .append(VOLUME.charAt((volume << 2) + 3));
+        }
+        switch (octave - lastOctave + (note == 12 ? 1 : 0))
+        {
+            case -2:
+                tempCode.append(">> ");
+                break;
+            case -1:
+                tempCode.append("> ");
+                break;
+            case 0:
+                break;
+            case 1:
+                tempCode.append("< ");
+                break;
+            case 2:
+                tempCode.append("<< ");
+                break;
+            default:
+                tempCode.append(OCTAVE.charAt((octave << 1) + octave))
+                    .append(OCTAVE.charAt(((octave << 1) + 1 + octave)))
+                    .append(OCTAVE.charAt(((octave << 1) + 2 + octave)));
+                break;
+        }
+        switch (note)
+        {
+            case 0:
+                tempCode.append('C');
+                break;
+            case 1:
+                tempCode.append("C#");
+                break;
+            case 2:
+                tempCode.append('D');
+                break;
+            case 3:
+                tempCode.append("D#");
+                break;
+            case 4:
+                tempCode.append('E');
+                break;
+            case 5:
+                tempCode.append('F');
+                break;
+            case 6:
+                tempCode.append("F#");
+                break;
+            case 7:
+                tempCode.append('G');
+                break;
+            case 8:
+                tempCode.append("G#");
+                break;
+            case 9:
+                tempCode.append('A');
+                break;
+            case 10:
+                tempCode.append("A#");
+                break;
+            case 11:
+                tempCode.append('B');
+                break;
+            case 12:
+                tempCode.append('C');
+                break;
+        }
+        tempCode.append(LENGTH.charAt((length << 2) + 1))
+            .append(LENGTH.charAt((length << 2) + 2))
+            .append(LENGTH.charAt((length << 2) + 3));
+        tempCode.getChars(0, tempCode.length(), tempBuffer, 0);
+        lastOctave = octave + (note == 12 ? 1 : 0);
+        lastVolume = volume;
     }
 
     // @Override Canvas.keyReleased
@@ -316,6 +500,12 @@ final class Keyboard extends Canvas
 
         g.setColor(0xC0C0C0);
         g.fillRect(0, 0, getWidth(), 268);
+
+        g.setColor(0xA0A0A0);
+        for (int i = 1; i < 5; i++)
+        {
+            g.drawLine(0, i * 12, 240, i * 12);
+        }
 
         for (int i = 0; i < 8; i++)
         {
