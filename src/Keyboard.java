@@ -18,6 +18,7 @@ final class Keyboard extends Canvas
     int octave = 5;
     int length = 5;
     int volume = 9;
+    int key_type = 0;
 
     Keyboard()
     {
@@ -44,21 +45,27 @@ final class Keyboard extends Canvas
 
         g.drawImage(backgroundImage, 0, 0, Graphics.LEFT | Graphics.TOP);
 
-        g.setColor(0x800080);
-        for (int i = 0; i < 8; i++)
+        if (key_type == 0)
         {
-            if (octave == 10 && i >= 5) { break; }
-            g.drawSubstring("12345678", i, 1, i * 30 + 12, 95, Graphics.LEFT | Graphics.TOP);
+            g.setColor(0x800080);
+            for (int i = 0; i < 8; i++)
+            {
+                if (octave == 10 && i >= 5) { break; }
+                g.drawSubstring("12345678", i, 1, i * 30 + 12, 95, Graphics.LEFT | Graphics.TOP);
+            }
         }
-        g.setColor(0xB000B0);
-        for (int i = 0; i < 2; i++)
+        else
         {
-            g.drawSubstring("12", i, 1, i * 30 + 27, 65, Graphics.LEFT | Graphics.TOP);
-        }
-        for (int i = 0; i < 3; i++)
-        {
-            if (octave == 10 && i > 0) { break; }
-            g.drawSubstring("345", i, 1, i * 30 + 117, 65, Graphics.LEFT | Graphics.TOP);
+            g.setColor(0xB000B0);
+            for (int i = 0; i < 2; i++)
+            {
+                g.drawSubstring("12", i, 1, i * 30 + 27, 65, Graphics.LEFT | Graphics.TOP);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                if (octave == 10 && i > 0) { break; }
+                g.drawSubstring("456", i, 1, i * 30 + 117, 65, Graphics.LEFT | Graphics.TOP);
+            }
         }
 
         g.setFont(mediumFont);
@@ -86,15 +93,66 @@ final class Keyboard extends Canvas
             g.drawSubstring(LENGTH, (length + 1) * 4, 4, 105, 152, Graphics.LEFT | Graphics.TOP);
         }
 
+        if (key_type == 0)
+        {
+            g.drawString("C", 71, 177, Graphics.LEFT | Graphics.TOP);
+            g.drawString("D", 111, 177, Graphics.LEFT | Graphics.TOP);
+            g.drawString("E", 151, 177, Graphics.LEFT | Graphics.TOP);
+
+            g.drawString("F", 71, 199, Graphics.LEFT | Graphics.TOP);
+            g.drawString("G", 111, 199, Graphics.LEFT | Graphics.TOP);
+            if (octave < 10)
+            {
+                g.drawString("A", 151, 199, Graphics.LEFT | Graphics.TOP);
+
+                g.drawString("B", 71, 221, Graphics.LEFT | Graphics.TOP);
+                g.drawString("<C>", 101, 221, Graphics.LEFT | Graphics.TOP);
+            }
+            g.drawString("#", 151, 221, Graphics.LEFT | Graphics.TOP);
+
+            // g.drawString("?", 71, 243, Graphics.LEFT | Graphics.TOP);
+            g.drawString("R", 111, 243, Graphics.LEFT | Graphics.TOP);
+            // g.drawString("?", 151, 243, Graphics.LEFT | Graphics.TOP);
+        }
+        else
+        {
+            g.drawString("C#", 71, 177, Graphics.LEFT | Graphics.TOP);
+            g.drawString("D#", 111, 177, Graphics.LEFT | Graphics.TOP);
+            // g.drawString("?", 151, 177, Graphics.LEFT | Graphics.TOP);
+
+            g.drawString("F#", 71, 199, Graphics.LEFT | Graphics.TOP);
+            g.drawString("G#", 111, 199, Graphics.LEFT | Graphics.TOP);
+            if (octave < 10)
+            {
+                g.drawString("A#", 151, 199, Graphics.LEFT | Graphics.TOP);
+
+                // g.drawString("?", 71, 221, Graphics.LEFT | Graphics.TOP);
+                // g.drawString("?", 101, 221, Graphics.LEFT | Graphics.TOP);
+            }
+            g.drawString("#", 151, 221, Graphics.LEFT | Graphics.TOP);
+
+            // g.drawString("?", 71, 243, Graphics.LEFT | Graphics.TOP);
+            g.drawString("R", 111, 243, Graphics.LEFT | Graphics.TOP);
+            // g.drawString("?", 151, 243, Graphics.LEFT | Graphics.TOP);
+        }
+
         switch (note)
         {
             case 0:
                 g.setColor(0xF07000);
                 g.fillRect(8, 110, 15, 5);
                 break;
+            case 1:
+                g.setColor(0xF07000);
+                g.fillRect(23, 80, 15, 5);
+                break;
             case 2:
                 g.setColor(0xF07000);
                 g.fillRect(30 + 8, 110, 15, 5);
+                break;
+            case 3:
+                g.setColor(0xF07000);
+                g.fillRect(53, 80, 15, 5);
                 break;
             case 4:
                 g.setColor(0xF07000);
@@ -104,13 +162,25 @@ final class Keyboard extends Canvas
                 g.setColor(0xF07000);
                 g.fillRect(90 + 8, 110, 15, 5);
                 break;
+            case 6:
+                g.setColor(0xF07000);
+                g.fillRect(113, 80, 15, 5);
+                break;
             case 7:
                 g.setColor(0xF07000);
                 g.fillRect(120 + 8, 110, 15, 5);
                 break;
+            case 8:
+                g.setColor(0xF07000);
+                g.fillRect(143, 80, 15, 5);
+                break;
             case 9:
                 g.setColor(0xF07000);
                 g.fillRect(150 + 8, 110, 15, 5);
+                break;
+            case 10:
+                g.setColor(0xF07000);
+                g.fillRect(173, 80, 15, 5);
                 break;
             case 11:
                 g.setColor(0xF07000);
@@ -130,28 +200,32 @@ final class Keyboard extends Canvas
         switch (keyCode)
         {
             case KEY_NUM1:
-                note = 0;
+                note = 0 + key_type;
                 break;
             case KEY_NUM2:
-                note = 2;
+                note = 2 + key_type;
                 break;
             case KEY_NUM3:
-                note = 4;
+                if (key_type == 0) { note = 4; }
                 break;
             case KEY_NUM4:
-                note = 5;
+                note = 5 + key_type;
                 break;
             case KEY_NUM5:
-                note = 7;
+                note = 7 + key_type;
                 break;
             case KEY_NUM6:
-                note = 9;
+                note = 9 + key_type;
                 break;
             case KEY_NUM7:
-                note = 11;
+                if (key_type == 0) { note = 11; }
                 break;
             case KEY_NUM8:
-                note = 12;
+                if (key_type == 0) { note = 12; }
+                break;
+            case KEY_NUM9:
+                key_type = 1 - key_type;
+                repaint(0, 60, 240, 208);
                 break;
             case -1: // KEY_UP
                 if (0 < length)
@@ -173,7 +247,7 @@ final class Keyboard extends Canvas
                     octave -= 1;
                     if (octave == 9)
                     {
-                        repaint(0, 60, 240, 100);
+                        repaint(0, 60, 240, 186);
                     }
                     else
                     {
@@ -187,7 +261,7 @@ final class Keyboard extends Canvas
                     octave += 1;
                     if (octave == 10)
                     {
-                        repaint(0, 60, 240, 100);
+                        repaint(0, 60, 240, 186);
                     }
                     else
                     {
@@ -213,7 +287,7 @@ final class Keyboard extends Canvas
         if (note >= 0)
         {
             note = -1;
-            repaint(3, 110, 234, 5);
+            repaint(0, 60, 240, 60);
         }
     }
 
