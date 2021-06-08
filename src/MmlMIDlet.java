@@ -19,12 +19,15 @@ import javax.microedition.rms.*;
 public final class MmlMIDlet extends MIDlet implements CommandListener
 {
     Player player = null;
+    Thread downloading = null;
 
     final List mainDisp;
     final TextBox titleBox, codingBox, keyboardCodeViewer;
     final Alert confirmDelete, confirmBack;
     final Keyboard keyboard;
+    final DownloadForm downloader;
     Form  helpViewer = null;
+    Alert waitDownload = null;
 
     final Command
             exitCommand,
@@ -46,7 +49,10 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             viewKeyboardCommand,
             closeKeyboardCodeViewerCommand,
             playKeyboardCodeViewerCommand,
-            stopKeyboardCodeViewerCommand;
+            stopKeyboardCodeViewerCommand,
+            downloadCommand,
+            closeDownloaderCommand,
+            doDownloadCommand;
 
     Command helpCommand = null,
             closeHelpCommand = null;
@@ -65,6 +71,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         confirmBack = new Alert("CONFIRM", "GO BACK WITHOUT SAVING ??", null, AlertType.WARNING);
         keyboard = new Keyboard();
         keyboardCodeViewer = new TextBox("VIEW FOR COPY", "", 5000, TextField.ANY);
+        downloader = new DownloadForm(mainDisp);
 
         confirmDelete.setTimeout(Alert.FOREVER);
         confirmBack.setTimeout(Alert.FOREVER);
@@ -73,6 +80,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         mainDisp.addCommand(exitCommand);
         newCommand = new Command("NEW", Command.SCREEN, 2);
         mainDisp.addCommand(newCommand);
+        downloadCommand = new Command("HTTP", Command.SCREEN, 3);
+        mainDisp.addCommand(downloadCommand);
 
         titleCancelCommand = new Command("CANCEL", Command.CANCEL, 1);
         titleBox.addCommand(titleCancelCommand);
@@ -116,6 +125,11 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         stopKeyboardCodeViewerCommand = new Command("STOP", Command.SCREEN, 3);
         keyboardCodeViewer.addCommand(stopKeyboardCodeViewerCommand);
 
+        closeDownloaderCommand = new Command("BACK", Command.BACK, 1);
+        downloader.addCommand(closeDownloaderCommand);
+        doDownloadCommand = new Command("GET", Command.OK, 2);
+        downloader.addCommand(doDownloadCommand);
+
         mainDisp.setCommandListener(this);
         titleBox.setCommandListener(this);
         codingBox.setCommandListener(this);
@@ -123,6 +137,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         confirmBack.setCommandListener(this);
         keyboard.setCommandListener(this);
         keyboardCodeViewer.setCommandListener(this);
+        downloader.setCommandListener(this);
 
         availableSize = -1;
 
@@ -245,6 +260,10 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
                 titleBox.setString(null);
                 titleBox.setTicker(null);
                 Display.getDisplay(this).setCurrent(titleBox);
+            }
+            else if (cmd == downloadCommand)
+            {
+                Display.getDisplay(this).setCurrent(downloader);
             }
             else if (cmd == List.SELECT_COMMAND)
             {
@@ -383,6 +402,25 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
                 {
                     try { player.stop(); } catch (Exception ex) {}
                 }
+            }
+        }
+        else if (disp == downloader)
+        {
+            if (cmd == closeDownloaderCommand)
+            {
+                downloader.setTicker(null);
+                Display.getDisplay(this).setCurrent(mainDisp);
+            }
+            else if (cmd == doDownloadCommand)
+            {
+                doDownload();
+            }
+        }
+        else if (disp == waitDownload)
+        {
+            if (cmd == Alert.DISMISS_COMMAND)
+            {
+                checkDownloaded();
             }
         }
         else if (disp == helpViewer)
@@ -821,6 +859,50 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             {
                 try { src.close(); } catch (Exception ex) {}
             }
+        }
+    }
+
+    void doDownload()
+    {
+        if (!downloader.isValid()) { return; }
+        downloading = new Thread(downloader);
+        downloading.start();
+        waitDownload = new Alert("download", "downloading...", null, null);
+        waitDownload.setTimeout(Alert.FOREVER);
+        Display.getDisplay(this).setCurrent(waitDownload);
+        (new Thread(new Runnable() {
+            public void run()
+            {
+                if (downloading != null)
+                {
+                    try { downloading.join(); }
+                    catch (Exception ex) {}
+                }
+                commandAction(Alert.DISMISS_COMMAND, waitDownload);
+            }
+        })).start();
+    }
+
+    void checkDownloaded()
+    {
+        if (downloading != null)
+        {
+            if (downloading.isAlive())
+            {
+                return;
+            }
+            downloading = null;
+        }
+        waitDownload = null;
+        if (downloader.error == null)
+        {
+            Alert alert = new Alert("INFO", "SUCCESS DOWNLOAD", null, AlertType.CONFIRMATION);
+            Display.getDisplay(this).setCurrent(alert, mainDisp);
+        }
+        else
+        {
+            downloader.setTicker(new Ticker(downloader.error));
+            Display.getDisplay(this).setCurrent(downloader);
         }
     }
 }
