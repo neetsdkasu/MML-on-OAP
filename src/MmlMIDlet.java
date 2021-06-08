@@ -20,13 +20,14 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
 {
     Player player = null;
 
-    List mainDisp;
-    TextBox titleBox, codingBox;
-    Alert confirmDelete, confirmBack;
-    Form helpViewer = null;
-    Keyboard keyboard;
+    final List mainDisp;
+    final TextBox titleBox, codingBox;
+    final Alert confirmDelete, confirmBack;
+    final Keyboard keyboard;
+    Form  helpViewer = null;
 
-    Command exitCommand,
+    final Command
+            exitCommand,
             newCommand,
             titleOkCommand,
             titleCancelCommand,
@@ -39,10 +40,11 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             doDeleteCommand,
             cancelBackCommand,
             goBackCommand,
-            helpCommand = null,
-            closeHelpCommand = null,
             keyboardCommand,
             closePianoCommand;
+
+    Command helpCommand = null,
+            closeHelpCommand = null;
 
     RecordStore currentRecord = null;
 

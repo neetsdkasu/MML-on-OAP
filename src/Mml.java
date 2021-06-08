@@ -3,7 +3,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import javax.microedition.media.control.ToneControl;
 
-class Mml
+final class Mml
 {
     public static String parse(String src, OutputStream dst) throws IOException
     {
@@ -43,7 +43,7 @@ class Mml
         return null;
     }
 
-    String src;
+    final String src;
     String error = null;
     int pos = 0;
 

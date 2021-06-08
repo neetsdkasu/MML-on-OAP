@@ -1,16 +1,31 @@
 import javax.microedition.lcdui.Canvas;
 import javax.microedition.lcdui.Graphics;
+import javax.microedition.lcdui.Font;
 import javax.microedition.media.Manager;
 
-class Keyboard extends Canvas
+final class Keyboard extends Canvas
 {
+    final Font font;
+
     int note = -1;
+
+    Keyboard()
+    {
+        boolean wtk = String
+            .valueOf(System.getProperty("microedition.platform"))
+            .startsWith("Sun");
+
+        // font height = 12
+        font = wtk
+             ? Font.getFont(Font.FACE_SYSTEM, Font.STYLE_PLAIN, Font.SIZE_MEDIUM)
+             : Font.getFont(Font.FACE_SYSTEM, Font.STYLE_PLAIN, Font.SIZE_SMALL);
+    }
 
     // @Override Canvas.paint
     public void paint(Graphics g)
     {
-        g.setColor(0xF0F0F0);
-        g.fillRect(0, 0, getWidth(), getHeight());
+        g.setColor(0xD0D0D0);
+        g.fillRect(0, 0, getWidth(), 268);
 
         for (int i = 0; i < 8; i++)
         {
@@ -29,39 +44,62 @@ class Keyboard extends Canvas
         }
         g.fillRect(230, 60, 20, 30);
 
+        int w = 40, h = 22;
+        int offX = (getWidth() - w) / 2;
+        int offY = 120 + 5;
+        g.drawRoundRect(offX, offY, w, h, 10, 10);
+        offY += h + 3;
+        g.drawRoundRect(offX, offY, w, h, 10, 10);
+        offY += h + 3;
+        offX = (getWidth() - 3 * w) / 2;
+        g.drawRoundRect(offX, offY, 3 * w, 4 * h, 10, 10);
+        for (int i = 1; i < 3; i++)
+        {
+            g.drawLine(i * w + offX, offY, i * w + offX, 4 * h + offY);
+        }
+        for (int i = 1; i < 4; i++)
+        {
+            g.drawLine(offX, i * h + offY, 3 * w + offX, i * h + offY);
+        }
+        offX = (getWidth() - 3 * w - 6) / 2;
+        offY = 120 + 8 + h / 2;
+        g.drawRoundRect(offX, offY, w, h, 10, 10);
+        offX = getWidth() - offX - w;
+        g.drawRoundRect(offX, offY, w, h, 10, 10);
+
         switch (note)
         {
             case 0:
                 g.setColor(0xF07000);
-                g.fillRect(4, 110, 23, 5);
+                g.fillRect(8, 110, 15, 5);
                 break;
             case 2:
                 g.setColor(0xF07000);
-                g.fillRect(30 + 4, 110, 23, 5);
+                g.fillRect(30 + 8, 110, 15, 5);
                 break;
             case 4:
                 g.setColor(0xF07000);
-                g.fillRect(60 + 4, 110, 23, 5);
+                g.fillRect(60 + 8, 110, 15, 5);
                 break;
             case 5:
                 g.setColor(0xF07000);
-                g.fillRect(90 + 4, 110, 23, 5);
+                g.fillRect(90 + 8, 110, 15, 5);
                 break;
             case 7:
                 g.setColor(0xF07000);
-                g.fillRect(120 + 4, 110, 23, 5);
+                g.fillRect(120 + 8, 110, 15, 5);
                 break;
             case 9:
                 g.setColor(0xF07000);
-                g.fillRect(150 + 4, 110, 23, 5);
+                g.fillRect(150 + 8, 110, 15, 5);
                 break;
             case 11:
                 g.setColor(0xF07000);
-                g.fillRect(180 + 4, 110, 23, 5);
+                g.fillRect(180 + 8, 110, 15, 5);
                 break;
             case 12:
                 g.setColor(0xF07000);
-                g.fillRect(210 + 4, 110, 23, 5);
+                g.fillRect(210 + 8, 110, 15, 5);
                 break;
         }
     }
