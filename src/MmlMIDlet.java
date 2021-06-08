@@ -12,7 +12,7 @@ import javax.microedition.lcdui.TextField;
 import javax.microedition.lcdui.Ticker;
 import javax.microedition.media.Manager;
 import javax.microedition.media.Player;
-import javax.microedition.media.control.ToneControl;
+import javax.microedition.media.control.*;
 import javax.microedition.midlet.*;
 import javax.microedition.rms.*;
 
@@ -567,8 +567,9 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             }
             player.deallocate();
             player.realize();
-            ToneControl tc = (ToneControl)player.getControl("ToneControl");
-            tc.setSequence(sequence);
+            try { ((VolumeControl)player.getControl("VolumeControl")).setLevel(100); }
+            catch (Exception ex) {}
+            ((ToneControl)player.getControl("ToneControl")).setSequence(sequence);
             player.start();
         }
         catch (Exception ex)
