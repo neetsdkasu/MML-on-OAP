@@ -56,7 +56,7 @@ final class Keyboard extends Canvas
         }
         else
         {
-            g.setColor(0xF070F0);
+            g.setColor(0xF040F0);
             for (int i = 0; i < 2; i++)
             {
                 g.drawSubstring("12", i, 1, i * 30 + 27, 65, Graphics.LEFT | Graphics.TOP);
@@ -77,68 +77,67 @@ final class Keyboard extends Canvas
 
         if (0 < octave)
         {
-            g.drawSubstring(OCTAVE, (octave - 1) * 3, 3, 62, 140, Graphics.LEFT | Graphics.TOP);
+            g.drawSubstring(OCTAVE, (octave - 1) * 3, 3, 62, 142, Graphics.LEFT | Graphics.TOP);
         }
         if (octave < 10)
         {
-            g.drawSubstring(OCTAVE, (octave + 1) * 3, 3, 147, 140, Graphics.LEFT | Graphics.TOP);
+            g.drawSubstring(OCTAVE, (octave + 1) * 3, 3, 147, 142, Graphics.LEFT | Graphics.TOP);
         }
 
         if (0 < length)
         {
-            g.drawSubstring(LENGTH, (length - 1) * 4, 4, 105, 126, Graphics.LEFT | Graphics.TOP);
+            g.drawSubstring(LENGTH, (length - 1) * 4, 4, 105, 128, Graphics.LEFT | Graphics.TOP);
         }
         if (length < 15)
         {
-            g.drawSubstring(LENGTH, (length + 1) * 4, 4, 105, 152, Graphics.LEFT | Graphics.TOP);
+            g.drawSubstring(LENGTH, (length + 1) * 4, 4, 105, 154, Graphics.LEFT | Graphics.TOP);
         }
 
         if (key_type == 0)
         {
-            g.drawString("C", 71, 177, Graphics.LEFT | Graphics.TOP);
-            g.drawString("D", 111, 177, Graphics.LEFT | Graphics.TOP);
-            g.drawString("E", 151, 177, Graphics.LEFT | Graphics.TOP);
+            g.drawString("C", 71, 178, Graphics.LEFT | Graphics.TOP);
+            g.drawString("D", 111, 178, Graphics.LEFT | Graphics.TOP);
+            g.drawString("E", 151, 178, Graphics.LEFT | Graphics.TOP);
 
-            g.drawString("F", 71, 199, Graphics.LEFT | Graphics.TOP);
-            g.drawString("G", 111, 199, Graphics.LEFT | Graphics.TOP);
+            g.drawString("F", 71, 200, Graphics.LEFT | Graphics.TOP);
+            g.drawString("G", 111, 200, Graphics.LEFT | Graphics.TOP);
             if (octave < 10)
             {
-                g.drawString("A", 151, 199, Graphics.LEFT | Graphics.TOP);
+                g.drawString("A", 151, 200, Graphics.LEFT | Graphics.TOP);
 
-                g.drawString("B", 71, 221, Graphics.LEFT | Graphics.TOP);
-                g.drawString("<C>", 101, 221, Graphics.LEFT | Graphics.TOP);
+                g.drawString("B", 71, 222, Graphics.LEFT | Graphics.TOP);
+                g.drawString("<C>", 101, 222, Graphics.LEFT | Graphics.TOP);
             }
-            g.drawString("#", 151, 221, Graphics.LEFT | Graphics.TOP);
-
+            g.drawString("#", 151, 222, Graphics.LEFT | Graphics.TOP);
         }
         else
         {
-            g.drawString("C#", 71, 177, Graphics.LEFT | Graphics.TOP);
-            g.drawString("D#", 111, 177, Graphics.LEFT | Graphics.TOP);
-            // g.drawString("?", 151, 177, Graphics.LEFT | Graphics.TOP);
+            g.drawString("C#", 71, 178, Graphics.LEFT | Graphics.TOP);
+            g.drawString("D#", 111, 178, Graphics.LEFT | Graphics.TOP);
+            // g.drawString("?", 151, 178, Graphics.LEFT | Graphics.TOP);
 
-            g.drawString("F#", 71, 199, Graphics.LEFT | Graphics.TOP);
-            g.drawString("G#", 111, 199, Graphics.LEFT | Graphics.TOP);
+            g.drawString("F#", 71, 200, Graphics.LEFT | Graphics.TOP);
             if (octave < 10)
             {
-                g.drawString("A#", 151, 199, Graphics.LEFT | Graphics.TOP);
+                g.drawString("G#", 111, 200, Graphics.LEFT | Graphics.TOP);
+                g.drawString("A#", 151, 200, Graphics.LEFT | Graphics.TOP);
 
-                // g.drawString("?", 71, 221, Graphics.LEFT | Graphics.TOP);
-                // g.drawString("?", 101, 221, Graphics.LEFT | Graphics.TOP);
+                // g.drawString("?", 71, 222, Graphics.LEFT | Graphics.TOP);
+                // g.drawString("?", 101, 222, Graphics.LEFT | Graphics.TOP);
             }
             g.setColor(0xF00070);
-            g.drawString("#", 151, 221, Graphics.LEFT | Graphics.TOP);
+            g.drawString("#", 151, 222, Graphics.LEFT | Graphics.TOP);
             g.setColor(0x000000);
         }
 
         if (volume > 0)
         {
-            g.drawSubstring(VOLUME, (volume - 1) * 4, 4, 63, 243, Graphics.LEFT | Graphics.TOP);
+            g.drawSubstring(VOLUME, (volume - 1) * 4, 4, 63, 244, Graphics.LEFT | Graphics.TOP);
         }
-        g.drawString("R", 111, 243, Graphics.LEFT | Graphics.TOP);
+        g.drawString("R", 111, 244, Graphics.LEFT | Graphics.TOP);
         if (volume < 9)
         {
-            g.drawSubstring(VOLUME, (volume + 1) * 4, 4, 143, 243, Graphics.LEFT | Graphics.TOP);
+            g.drawSubstring(VOLUME, (volume + 1) * 4, 4, 143, 244, Graphics.LEFT | Graphics.TOP);
         }
 
         switch (note)
