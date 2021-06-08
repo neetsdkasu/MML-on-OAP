@@ -99,7 +99,7 @@ class Keyboard extends Canvas
         }
         if (note >= 0)
         {
-            try { Manager.playTone(60 + note, 500, 100); } catch (Exception ex) {}
+            try { Manager.playTone(60 + note, 200, 100); } catch (Exception ex) {}
             repaint(3, 110, 234, 5);
         }
     }
