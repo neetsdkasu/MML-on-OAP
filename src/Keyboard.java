@@ -1,3 +1,4 @@
+import java.io.*;
 import javax.microedition.lcdui.Canvas;
 import javax.microedition.lcdui.Graphics;
 import javax.microedition.lcdui.Font;
@@ -528,6 +529,108 @@ final class Keyboard extends Canvas
         lastTempCodeLength = -1;
         tempCode.setLength(0);
         repaint(0, 0, 240, 60);
+    }
+
+    void loadKeyboardCode(byte[] data)
+    {
+        if (data == null || data.length == 0)
+        {
+            return;
+        }
+        ByteArrayInputStream bais = null;
+        DataInputStream dis = null;
+        try
+        {
+            bais = new ByteArrayInputStream(data);
+            dis = new DataInputStream(bais);
+            int lastOct = (int)dis.readByte();
+            int lastVol = (int)dis.readByte();
+            int lastTCLen = dis.readInt();
+            int len = (int)dis.readByte();
+            for (int i = 0; i < len; i++)
+            {
+                code[i] = dis.readUTF();
+            }
+            tempCode.append(dis.readUTF());
+            tempCode.getChars(0, tempCode.length(), tempBuffer, 0);
+            lastOctave = lastOct;
+            lastVolume = lastVol;
+            lastTempCodeLength = lastTCLen;
+            codeInsertPos = len & 63;
+            codeCount = len;
+            repaint(0, 0, 240, 60);
+        }
+        catch (Exception ex)
+        {
+            for (int i = 0; i < code.length; i++)
+            {
+                code[i] = null;
+            }
+            tempCode.setLength(0);
+        }
+        finally
+        {
+            if (dis != null)
+            {
+                try { dis.close(); } catch (Exception ex) {}
+                dis = null;
+            }
+            if (bais != null)
+            {
+                try { bais.close(); } catch (Exception ex) {}
+                bais = null;
+            }
+        }
+    }
+
+    byte[] getKeyboardCodeForSave()
+    {
+        ByteArrayOutputStream baos = null;
+        DataOutputStream dos = null;
+        try
+        {
+            baos = new ByteArrayOutputStream();
+            dos = new DataOutputStream(baos);
+            dos.writeByte(lastOctave);
+            dos.writeByte(lastVolume);
+            dos.writeInt(lastTempCodeLength);
+            int len = 0;
+            for (int i = 0; i < code.length; i++)
+            {
+                if (code[i] != null) { len++; }
+            }
+            dos.writeByte(len);
+            int pos = codeInsertPos;
+            for (int i = 0; i < code.length; i++)
+            {
+                if (code[i] != null)
+                {
+                    dos.writeUTF(code[i]);
+                }
+            }
+            dos.writeUTF(tempCode.toString());
+            dos.flush();
+            baos.flush();
+            byte[] data = baos.toByteArray();
+            return data;
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
+        finally
+        {
+            if (dos != null)
+            {
+                try { dos.close(); } catch (Exception ex) {}
+                dos = null;
+            }
+            if (baos != null)
+            {
+                try { baos.close(); } catch (Exception ex) {}
+                baos = null;
+            }
+        }
     }
 
     Image makeBackgroundImage()

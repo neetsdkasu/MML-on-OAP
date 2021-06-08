@@ -51,7 +51,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
     Command helpCommand = null,
             closeHelpCommand = null;
 
-    RecordStore currentRecord = null;
+    RecordStore currentRecord = null,
+                keyboardCodeRecord = null;
 
     int availableSize = 0;
 
@@ -123,8 +124,29 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         keyboard.setCommandListener(this);
         keyboardCodeViewer.setCommandListener(this);
 
-        String[] mmlList = RecordStore.listRecordStores();
         availableSize = -1;
+
+        try
+        {
+            keyboardCodeRecord = RecordStore.openRecordStore("mml#keyboardCode", true);
+            availableSize = keyboardCodeRecord.getSizeAvailable();
+            if (keyboardCodeRecord.getNumRecords() > 0)
+            {
+                byte[] data = keyboardCodeRecord.getRecord(1);
+                keyboard.loadKeyboardCode(data);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (keyboardCodeRecord != null)
+            {
+                try { keyboardCodeRecord.closeRecordStore(); }
+                catch (Exception ex2) {}
+                keyboardCodeRecord = null;
+            }
+        }
+
+        String[] mmlList = RecordStore.listRecordStores();
         if (mmlList != null)
         {
             for (int i = 0; i < mmlList.length; i++)
@@ -153,8 +175,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
                 }
             }
         }
-        if (availableSize < 0) { availableSize = 32768; }
 
+        if (availableSize < 0) { availableSize = 32768; }
         mainDisp.setTitle("MML on OAP (" + availableSize + "/32768)");
 
         loadHelpText();
@@ -171,6 +193,25 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
     // @Override MIDlet.destroyApp
     protected void destroyApp(boolean unconditional) throws MIDletStateChangeException
     {
+        if (keyboardCodeRecord != null)
+        {
+            byte[] data = keyboard.getKeyboardCodeForSave();
+            if (data == null) { data = new byte[0]; }
+            try
+            {
+                if (keyboardCodeRecord.getNumRecords() > 0)
+                {
+                    keyboardCodeRecord.setRecord(1, data, 0, data.length);
+                }
+                else
+                {
+                    keyboardCodeRecord.addRecord(data, 0, data.length);
+                }
+            }
+            catch (Exception ex) { ex.printStackTrace(); }
+            try { keyboardCodeRecord.closeRecordStore(); } catch (Exception ex) {}
+            keyboardCodeRecord = null;
+        }
         if (currentRecord != null)
         {
             saveMml(null);
