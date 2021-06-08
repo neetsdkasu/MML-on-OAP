@@ -342,6 +342,16 @@ final class Keyboard extends Canvas
         }
     }
 
+    // @Override Canvas.keyReleased
+    protected void keyReleased(int keyCode)
+    {
+        if (note >= 0)
+        {
+            note = -1;
+            repaint(0, 60, 240, 60);
+        }
+    }
+
     void addRest()
     {
         if (40 < tempCode.length() + 4)
@@ -483,14 +493,41 @@ final class Keyboard extends Canvas
         lastVolume = volume;
     }
 
-    // @Override Canvas.keyReleased
-    protected void keyReleased(int keyCode)
+    String getMmlString()
     {
-        if (note >= 0)
+        int len = tempCode.length() + 2;
+        for (int i = 0; i < code.length; i++)
         {
-            note = -1;
-            repaint(0, 60, 240, 60);
+            if (code[i] != null)
+            {
+                len += code[i].length() + 2;
+            }
         }
+        StringBuffer sb = new StringBuffer(len);
+        int pos = codeInsertPos;
+        for (int i = 0; i < code.length; i++)
+        {
+            if (code[pos] != null)
+            {
+                sb.append(code[pos]).append('\n');
+            }
+            pos = (pos + 1) & 63;
+        }
+        sb.append(tempBuffer, 0, tempCode.length()).append('\n');
+        return sb.toString();
+    }
+
+    void clearMmlCode()
+    {
+        for (int i = 0; i < code.length; i++)
+        {
+            code[i] = null;
+        }
+        codeInsertPos = 0;
+        codeCount = 0;
+        lastTempCodeLength = -1;
+        tempCode.setLength(0);
+        repaint(0, 0, 240, 60);
     }
 
     Image makeBackgroundImage()

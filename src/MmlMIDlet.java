@@ -21,7 +21,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
     Player player = null;
 
     final List mainDisp;
-    final TextBox titleBox, codingBox;
+    final TextBox titleBox, codingBox, keyboardCodeViewer;
     final Alert confirmDelete, confirmBack;
     final Keyboard keyboard;
     Form  helpViewer = null;
@@ -41,7 +41,12 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             cancelBackCommand,
             goBackCommand,
             keyboardCommand,
-            closePianoCommand;
+            closeKeyboardCommand,
+            clearKeyboardCommand,
+            viewKeyboardCommand,
+            closeKeyboardCodeViewerCommand,
+            playKeyboardCodeViewerCommand,
+            stopKeyboardCodeViewerCommand;
 
     Command helpCommand = null,
             closeHelpCommand = null;
@@ -58,6 +63,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         confirmDelete = new Alert("CONFIRM", "", null, AlertType.WARNING);
         confirmBack = new Alert("CONFIRM", "GO BACK WITHOUT SAVING ??", null, AlertType.WARNING);
         keyboard = new Keyboard();
+        keyboardCodeViewer = new TextBox("VIEW FOR COPY", "", 5000, TextField.ANY);
 
         confirmDelete.setTimeout(Alert.FOREVER);
         confirmBack.setTimeout(Alert.FOREVER);
@@ -95,8 +101,19 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         goBackCommand = new Command("GOBACK", Command.SCREEN, 2);
         confirmBack.addCommand(goBackCommand);
 
-        closePianoCommand = new Command("BACK", Command.BACK, 1);
-        keyboard.addCommand(closePianoCommand);
+        closeKeyboardCommand = new Command("BACK", Command.BACK, 1);
+        keyboard.addCommand(closeKeyboardCommand);
+        clearKeyboardCommand = new Command("CLEAR", Command.SCREEN, 2);
+        keyboard.addCommand(clearKeyboardCommand);
+        viewKeyboardCommand = new Command("VIEW", Command.SCREEN, 3);
+        keyboard.addCommand(viewKeyboardCommand);
+
+        closeKeyboardCodeViewerCommand = new Command("BACK", Command.BACK, 1);
+        keyboardCodeViewer.addCommand(closeKeyboardCodeViewerCommand);
+        playKeyboardCodeViewerCommand = new Command("PLAY", Command.SCREEN, 2);
+        keyboardCodeViewer.addCommand(playKeyboardCodeViewerCommand);
+        stopKeyboardCodeViewerCommand = new Command("STOP", Command.SCREEN, 3);
+        keyboardCodeViewer.addCommand(stopKeyboardCodeViewerCommand);
 
         mainDisp.setCommandListener(this);
         titleBox.setCommandListener(this);
@@ -104,6 +121,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         confirmDelete.setCommandListener(this);
         confirmBack.setCommandListener(this);
         keyboard.setCommandListener(this);
+        keyboardCodeViewer.setCommandListener(this);
 
         String[] mmlList = RecordStore.listRecordStores();
         availableSize = -1;
@@ -288,9 +306,42 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         }
         else if (disp == keyboard)
         {
-            if (cmd == closePianoCommand)
+            if (cmd == closeKeyboardCommand)
             {
                 Display.getDisplay(this).setCurrent(codingBox);
+            }
+            else if (cmd == clearKeyboardCommand)
+            {
+                keyboard.clearMmlCode();
+            }
+            else if (cmd == viewKeyboardCommand)
+            {
+                String mml = keyboard.getMmlString();
+                keyboardCodeViewer.setString(mml);
+                Display.getDisplay(this).setCurrent(keyboardCodeViewer);
+            }
+        }
+        else if (disp == keyboardCodeViewer)
+        {
+            if (cmd == closeKeyboardCodeViewerCommand)
+            {
+                if (player != null)
+                {
+                    try { player.stop(); } catch (Exception ex) {}
+                }
+                Display.getDisplay(this).setCurrent(keyboard);
+                keyboardCodeViewer.setString(null);
+            }
+            else if (cmd == playKeyboardCodeViewerCommand)
+            {
+                playKeyboardCode();
+            }
+            else if (cmd == stopKeyboardCodeViewerCommand)
+            {
+                if (player != null)
+                {
+                    try { player.stop(); } catch (Exception ex) {}
+                }
             }
         }
         else if (disp == helpViewer)
@@ -545,7 +596,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
     private void playMml()
     {
         String mml = codingBox.getString();
-        if (mml == null || (mml = mml.trim()).length() == 0)
+        if (mml == null)
         {
             Alert alert = new Alert("ERROR", "CODE IS EMPTY", null, AlertType.ERROR);
             Display.getDisplay(this).setCurrent(alert, codingBox);
@@ -621,6 +672,76 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             {
                 try { buf.close(); } catch (Exception ex) {}
                 buf = null;
+            }
+        }
+    }
+
+    private void playKeyboardCode()
+    {
+        String mml = keyboardCodeViewer.getString();
+        if (mml == null)
+        {
+            Alert alert = new Alert("ERROR", "CODE IS EMPTY", null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, keyboardCodeViewer);
+            return;
+        }
+        ByteArrayOutputStream baos = null;
+        byte[] sequence = null;
+        try
+        {
+            baos = new ByteArrayOutputStream();
+            String error = Mml.parse(mml, baos);
+
+            if (error != null)
+            {
+                Alert alert = new Alert("ERROR", error, null, AlertType.ERROR);
+                Display.getDisplay(this).setCurrent(alert, keyboardCodeViewer);
+                return;
+            }
+
+            sequence = baos.toByteArray();
+        }
+        catch (Exception ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, keyboardCodeViewer);
+            return;
+        }
+        finally
+        {
+            if (baos != null)
+            {
+                try { baos.close(); } catch (Exception ex) {}
+                baos = null;
+            }
+        }
+
+        try
+        {
+            if (player == null)
+            {
+                player = Manager.createPlayer(Manager.TONE_DEVICE_LOCATOR);
+            }
+            if (player.getState() == Player.STARTED)
+            {
+                player.stop();
+            }
+            player.deallocate();
+            player.realize();
+            try { ((VolumeControl)player.getControl("VolumeControl")).setLevel(100); }
+            catch (Exception ex) {}
+            ((ToneControl)player.getControl("ToneControl")).setSequence(sequence);
+            player.start();
+        }
+        catch (Exception ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, keyboardCodeViewer);
+            if (player != null)
+            {
+                try { player.stop(); } catch (Exception ex2) {}
+                try { player.close(); } catch (Exception ex2) {}
+                player = null;
             }
         }
     }
