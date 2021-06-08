@@ -24,6 +24,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
     TextBox titleBox, codingBox;
     Alert confirmDelete, confirmBack;
     Form helpViewer = null;
+    Keyboard keyboard;
 
     Command exitCommand,
             newCommand,
@@ -39,7 +40,9 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             cancelBackCommand,
             goBackCommand,
             helpCommand = null,
-            closeHelpCommand = null;
+            closeHelpCommand = null,
+            keyboardCommand,
+            closePianoCommand;
 
     RecordStore currentRecord = null;
 
@@ -50,6 +53,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         codingBox = new TextBox("INPUT MML", "", 5000, TextField.ANY);
         confirmDelete = new Alert("CONFIRM", "", null, AlertType.WARNING);
         confirmBack = new Alert("CONFIRM", "GO BACK WITHOUT SAVING ??", null, AlertType.WARNING);
+        keyboard = new Keyboard();
 
         confirmDelete.setTimeout(Alert.FOREVER);
         confirmBack.setTimeout(Alert.FOREVER);
@@ -74,6 +78,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         codingBox.addCommand(codingStopCommand);
         codingDeleteCommand = new Command("DELETE", Command.SCREEN, 5);
         codingBox.addCommand(codingDeleteCommand);
+        keyboardCommand = new Command("PIANO", Command.SCREEN, 6);
+        codingBox.addCommand(keyboardCommand);
 
         cancelDeleteCommand = new Command("CANCEL", Command.CANCEL, 1);
         confirmDelete.addCommand(cancelDeleteCommand);
@@ -85,11 +91,15 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         goBackCommand = new Command("GOBACK", Command.SCREEN, 2);
         confirmBack.addCommand(goBackCommand);
 
+        closePianoCommand = new Command("BACK", Command.BACK, 1);
+        keyboard.addCommand(closePianoCommand);
+
         mainDisp.setCommandListener(this);
         titleBox.setCommandListener(this);
         codingBox.setCommandListener(this);
         confirmDelete.setCommandListener(this);
         confirmBack.setCommandListener(this);
+        keyboard.setCommandListener(this);
 
         String[] mmlList = RecordStore.listRecordStores();
         if (mmlList != null)
@@ -201,6 +211,14 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
                 confirmDelete.setString(msg);
                 Display.getDisplay(this).setCurrent(confirmDelete);
             }
+            else if (cmd == keyboardCommand)
+            {
+                if (player != null)
+                {
+                    try { player.stop(); } catch (Exception ex) {}
+                }
+                Display.getDisplay(this).setCurrent(keyboard);
+            }
             else if (cmd == helpCommand)
             {
                 if (helpViewer != null)
@@ -241,6 +259,13 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
                 Display.getDisplay(this).setCurrent(alert, mainDisp);
                 mainDisp.setTicker(null);
                 codingBox.setTicker(null);
+            }
+        }
+        else if (disp == keyboard)
+        {
+            if (cmd == closePianoCommand)
+            {
+                Display.getDisplay(this).setCurrent(codingBox);
             }
         }
         else if (disp == helpViewer)
@@ -590,7 +615,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             closeHelpCommand = new Command("BACK", Command.BACK, 1);
             helpViewer.addCommand(closeHelpCommand);
 
-            helpCommand = new Command("HELP", Command.SCREEN, 6);
+            helpCommand = new Command("HELP", Command.SCREEN, 7);
             codingBox.addCommand(helpCommand);
 
             helpViewer.setCommandListener(this);
