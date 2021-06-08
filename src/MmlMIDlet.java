@@ -78,7 +78,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         codingBox.addCommand(codingStopCommand);
         codingDeleteCommand = new Command("DELETE", Command.SCREEN, 5);
         codingBox.addCommand(codingDeleteCommand);
-        keyboardCommand = new Command("PIANO", Command.SCREEN, 6);
+        keyboardCommand = new Command("KEYBD", Command.SCREEN, 6);
         codingBox.addCommand(keyboardCommand);
 
         cancelDeleteCommand = new Command("CANCEL", Command.CANCEL, 1);
