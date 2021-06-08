@@ -46,6 +46,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
 
     RecordStore currentRecord = null;
 
+    int availableSize = 0;
+
     public MmlMIDlet()
     {
         mainDisp = new List("MML on OAP", List.IMPLICIT);
@@ -102,17 +104,38 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         keyboard.setCommandListener(this);
 
         String[] mmlList = RecordStore.listRecordStores();
+        availableSize = -1;
         if (mmlList != null)
         {
             for (int i = 0; i < mmlList.length; i++)
             {
                 String mml = mmlList[i];
-                if (mml != null && mml.startsWith("mml."))
+                if (mml == null) { continue; }
+                if (mml.startsWith("mml."))
                 {
                     mainDisp.append(mml.substring(4), null);
                 }
+                if (availableSize >= 0) { continue; }
+                RecordStore rs = null;
+                try
+                {
+                    rs = RecordStore.openRecordStore(mml, false);
+                    availableSize = rs.getSizeAvailable();
+                }
+                catch(Exception ex) {}
+                finally
+                {
+                    if (rs != null)
+                    {
+                        try { rs.closeRecordStore(); } catch (Exception ex) {}
+                        rs = null;
+                    }
+                }
             }
         }
+        if (availableSize < 0) { availableSize = 32768; }
+
+        mainDisp.setTitle("MML on OAP (" + availableSize + "/32768)");
 
         loadHelpText();
 
@@ -308,6 +331,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             {
                 currentRecord.setRecord(1, data, 0, data.length);
             }
+            availableSize = currentRecord.getSizeAvailable();
+            mainDisp.setTitle("MML on OAP (" + availableSize + "/32768)");
             return true;
         }
         catch (RecordStoreFullException ex)
@@ -435,6 +460,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             rs = RecordStore.openRecordStore(rsName, true);
             currentRecord = rs;
             rs = null;
+            availableSize = currentRecord.getSizeAvailable();
         }
         catch (IllegalArgumentException ex)
         {
@@ -463,9 +489,9 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         }
 
         mainDisp.append(title, null);
+        mainDisp.setTitle("MML on OAP (" + availableSize + "/32768)");
         codingBox.setTitle(title);
         codingBox.setString(null);
-
         mainDisp.setTicker(null);
         titleBox.setTicker(null);
         codingBox.setTicker(null);
@@ -478,6 +504,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
 
         if (currentRecord != null)
         {
+            try { availableSize += currentRecord.getSize(); } catch (Exception ex) {}
             try { currentRecord.closeRecordStore(); } catch (Exception ex) {}
             currentRecord = null;
         }
@@ -507,6 +534,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         }
         codingBox.setTicker(null);
         mainDisp.setTicker(null);
+        mainDisp.setTitle("MML on OAP (" + availableSize + "/32768)");
         String msg = "DELTED! " + title;
         Alert alert = new Alert("INFO", msg, null, AlertType.CONFIRMATION);
         Display.getDisplay(this).setCurrent(alert, mainDisp);
