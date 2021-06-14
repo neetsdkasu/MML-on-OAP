@@ -526,6 +526,8 @@ final class Keyboard extends Canvas
         }
         codeInsertPos = 0;
         codeCount = 0;
+        lastOctave = 5;
+        lastVolume = 9;
         lastTempCodeLength = -1;
         tempCode.setLength(0);
         repaint(0, 0, 240, 60);
