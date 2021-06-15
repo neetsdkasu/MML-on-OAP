@@ -1,12 +1,16 @@
 import java.io.*;
 import javax.microedition.lcdui.Alert;
 import javax.microedition.lcdui.AlertType;
+import javax.microedition.lcdui.ChoiceGroup;
 import javax.microedition.lcdui.Command;
 import javax.microedition.lcdui.CommandListener;
 import javax.microedition.lcdui.Display;
 import javax.microedition.lcdui.Displayable;
 import javax.microedition.lcdui.Form;
+import javax.microedition.lcdui.Item;
+import javax.microedition.lcdui.ItemStateListener;
 import javax.microedition.lcdui.List;
+import javax.microedition.lcdui.StringItem;
 import javax.microedition.lcdui.TextBox;
 import javax.microedition.lcdui.TextField;
 import javax.microedition.lcdui.Ticker;
@@ -16,9 +20,9 @@ import javax.microedition.media.control.*;
 import javax.microedition.midlet.*;
 import javax.microedition.rms.*;
 
-public final class MmlMIDlet extends MIDlet implements CommandListener
+public final class MmlMIDlet extends MIDlet implements CommandListener, ItemStateListener
 {
-    Player player = null;
+    Player player = null, midiPlayer = null;
     Thread downloading = null;
 
     final List mainDisp;
@@ -28,6 +32,15 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
     final DownloadForm downloader;
     Form  helpViewer = null;
     Alert waitDownload = null;
+    Form instList = null;
+    Displayable backDisp = null;
+    ChoiceGroup instType = null;
+    ChoiceGroup[] instGroups = null;
+    StringItem instName = null;
+    int[] instIDs = null;
+    int instGroupIndexOfForm = 1;
+
+    byte[] midiData = null;
 
     final Command
             exitCommand,
@@ -55,7 +68,12 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             doDownloadCommand;
 
     Command helpCommand = null,
-            closeHelpCommand = null;
+            closeHelpCommand = null,
+            codingMidiCommand = null,
+            viewerMidiCommand = null,
+            midiPlayCommand = null,
+            midiStopCommand = null,
+            midiBackCommand = null;
 
     RecordStore currentRecord = null,
                 keyboardCodeRecord = null;
@@ -194,6 +212,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         if (availableSize < 0) { availableSize = 32768; }
         mainDisp.setTitle("MML on OAP (" + availableSize + "/32768)");
 
+        loadInstList();
         loadHelpText();
 
         Display.getDisplay(this).setCurrent(mainDisp);
@@ -238,6 +257,45 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             try { player.stop(); } catch (Exception ex) {}
             try { player.close(); } catch (Exception ex) {}
             player = null;
+        }
+        if (midiPlayer != null)
+        {
+            try { midiPlayer.stop(); } catch (Exception ex) {}
+            try { midiPlayer.close(); } catch (Exception ex) {}
+            midiPlayer = null;
+        }
+    }
+
+    // implement ItemStateListener.itemStateChanged
+    public void itemStateChanged(Item item)
+    {
+        int groupType = instType.getSelectedIndex();
+        if (groupType < 0)
+        {
+            return;
+        }
+        if (item == instType)
+        {
+            ChoiceGroup cg = instGroups[groupType];
+            if (instList.get(instGroupIndexOfForm) == cg)
+            {
+                return;
+            }
+            instList.set(instGroupIndexOfForm, cg);
+            if (0 <= cg.getSelectedIndex())
+            {
+                String name = cg.getString(cg.getSelectedIndex());
+                instName.setText(name);
+            }
+        }
+        else if (item == instGroups[groupType])
+        {
+            ChoiceGroup cg = instGroups[groupType];
+            if (0 <= cg.getSelectedIndex())
+            {
+                String name = cg.getString(cg.getSelectedIndex());
+                instName.setText(name);
+            }
         }
     }
 
@@ -322,6 +380,10 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
                 }
                 Display.getDisplay(this).setCurrent(keyboard);
             }
+            else if (cmd == codingMidiCommand)
+            {
+                showInstList(codingBox);
+            }
             else if (cmd == helpCommand)
             {
                 if (helpViewer != null)
@@ -403,6 +465,10 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
                     try { player.stop(); } catch (Exception ex) {}
                 }
             }
+            else if (cmd == viewerMidiCommand)
+            {
+                showInstList(keyboardCodeViewer);
+            }
         }
         else if (disp == downloader)
         {
@@ -421,6 +487,32 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             if (cmd == Alert.DISMISS_COMMAND)
             {
                 checkDownloaded();
+            }
+        }
+        else if (disp == instList)
+        {
+            if (cmd == midiBackCommand)
+            {
+                if (midiPlayer != null)
+                {
+                    try { midiPlayer.stop(); } catch (Exception ex) {}
+                    try { midiPlayer.close(); } catch (Exception ex) {}
+                    midiPlayer = null;
+                }
+                midiData = null;
+                Display.getDisplay(this).setCurrent(backDisp);
+                backDisp = null;
+            }
+            else if (cmd == midiPlayCommand)
+            {
+                playMidi();
+            }
+            else if (cmd == midiStopCommand)
+            {
+                if (midiPlayer != null)
+                {
+                    try { midiPlayer.stop(); } catch (Exception ex) {}
+                }
             }
         }
         else if (disp == helpViewer)
@@ -828,12 +920,14 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
     void loadHelpText()
     {
         InputStream src = null;
+        ByteArrayOutputStream baos = null;
+        byte[] buf = null;
         try
         {
             src = Class.class.getResourceAsStream("/help.txt");
             if (src == null) { return; }
-            byte[] buf = new byte[16];
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            buf = new byte[1024];
+            baos = new ByteArrayOutputStream();
             for (;;)
             {
                 int len = src.read(buf);
@@ -847,7 +941,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             closeHelpCommand = new Command("BACK", Command.BACK, 1);
             helpViewer.addCommand(closeHelpCommand);
 
-            helpCommand = new Command("HELP", Command.SCREEN, 7);
+            helpCommand = new Command("HELP", Command.SCREEN, 8);
             codingBox.addCommand(helpCommand);
 
             helpViewer.setCommandListener(this);
@@ -858,7 +952,111 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
             if (src != null)
             {
                 try { src.close(); } catch (Exception ex) {}
+                src = null;
             }
+            if (baos != null)
+            {
+                try { baos.close(); } catch (Exception ex) {}
+                baos = null;
+            }
+            buf = null;
+        }
+    }
+
+    void loadInstList()
+    {
+        InputStream src = null;
+        InputStreamReader isr = null;
+        StringBuffer sb = new StringBuffer();
+        byte[] buf = null;
+        try
+        {
+            src = Class.class.getResourceAsStream("/inst.txt");
+            if (src == null) { return; }
+
+            isr = new InputStreamReader(src, "UTF-8");
+
+            instType = new ChoiceGroup("TYPE", ChoiceGroup.POPUP);
+            instGroups = new ChoiceGroup[16];
+            instIDs = new int[16];
+            int id = -1;
+            int instCount = 0;
+
+            for (;;)
+            {
+                int ch = isr.read();
+                if (ch < 0) { break; }
+                if (ch == '\r' || ch == '\n')
+                {
+                    if (sb.length() > 0)
+                    {
+                        String item = sb.toString();
+                        if (item.startsWith("-"))
+                        {
+                            id++;
+                            item = item.substring(1);
+                            instType.append(item, null);
+                            instGroups[id] = new ChoiceGroup(item, ChoiceGroup.EXCLUSIVE);
+                            instIDs[id] = instCount;
+                        }
+                        else
+                        {
+                            instGroups[id].append(item, null);
+                            instCount++;
+                        }
+                        sb.setLength(0);
+                    }
+                    continue;
+                }
+                sb.append((char)ch);
+            }
+
+            if (sb.length() > 0)
+            {
+                instGroups[id].append(sb.toString(), null);
+            }
+
+            instList = new Form("MIDI INSTRUMENT");
+            instList.append(instType);
+            instGroupIndexOfForm = instList.append(instGroups[0]);
+            instName = new StringItem(null, null);
+            instList.append(instName);
+            if (0 <= instGroups[0].getSelectedIndex())
+            {
+                ChoiceGroup cg = instGroups[0];
+                String name = cg.getString(cg.getSelectedIndex());
+                instName.setText(name);
+            }
+
+            codingMidiCommand = new Command("MIDI", Command.SCREEN, 7);
+            codingBox.addCommand(codingMidiCommand);
+
+            viewerMidiCommand = new Command("MIDI", Command.SCREEN, 4);
+            keyboardCodeViewer.addCommand(viewerMidiCommand);
+
+            midiBackCommand = new Command("BACK", Command.BACK, 1);
+            instList.addCommand(midiBackCommand);
+            midiPlayCommand = new Command("PLAY", Command.SCREEN, 2);
+            instList.addCommand(midiPlayCommand);
+            midiStopCommand = new Command("STOP", Command.SCREEN, 3);
+            instList.addCommand(midiStopCommand);
+
+            instList.setCommandListener(this);
+            instList.setItemStateListener(this);
+        }
+        catch (Exception ex) { ex.printStackTrace(); }
+        finally
+        {
+            if (isr != null)
+            {
+                try { isr.close(); } catch (Exception ex) {}
+                isr = null;
+            }
+            if (src != null)
+            {
+                try { src.close(); } catch (Exception ex) {}
+            }
+            sb = null;
         }
     }
 
@@ -903,6 +1101,89 @@ public final class MmlMIDlet extends MIDlet implements CommandListener
         {
             downloader.setTicker(new Ticker(downloader.error));
             Display.getDisplay(this).setCurrent(downloader);
+        }
+    }
+
+    void showInstList(TextBox codeDisp)
+    {
+        String mml = codeDisp.getString();
+        if (mml == null)
+        {
+            Alert alert = new Alert("ERROR", "CODE IS EMPTY", null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, codeDisp);
+            return;
+        }
+        byte[] sequence = parseMml(mml);
+        if (sequence == null)
+        {
+            return;
+        }
+
+        try
+        {
+            midiData = Midi.compile(sequence, 0);
+        }
+        catch (Exception ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, codeDisp);
+            midiData = null;
+            return;
+        }
+        finally
+        {
+            sequence = null;
+        }
+
+        backDisp = codeDisp;
+        Display.getDisplay(this).setCurrent(instList);
+    }
+
+    void playMidi()
+    {
+        int groupType = instType.getSelectedIndex();
+        if (groupType < 0)
+        {
+            Alert alert = new Alert("ERROR", "MUST SELECT A INSTRUMENT", null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, instList);
+            return;
+        }
+        int inst = instGroups[groupType].getSelectedIndex();
+        if (inst < 0)
+        {
+            Alert alert = new Alert("ERROR", "MUST SELECT A INSTRUMENT", null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, instList);
+            return;
+        }
+        inst += instIDs[groupType];
+
+        Midi.changeInst(midiData, inst);
+
+        ByteArrayInputStream bais = null;
+        try
+        {
+            if (midiPlayer != null)
+            {
+                midiPlayer.stop();
+                midiPlayer.close();
+            }
+            bais = new ByteArrayInputStream(midiData);
+            midiPlayer = Manager.createPlayer(bais, "audio/midi");
+            midiPlayer.start();
+        }
+        catch (Exception ex)
+        {
+            Alert alert = new Alert("ERROR", ex.toString(), null, AlertType.ERROR);
+            Display.getDisplay(this).setCurrent(alert, codingBox);
+            return;
+        }
+        finally
+        {
+            if (bais != null)
+            {
+                try { bais.close(); } catch (Exception ex) {}
+                bais = null;
+            }
         }
     }
 }
