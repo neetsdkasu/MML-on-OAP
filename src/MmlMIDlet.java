@@ -65,7 +65,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener, ItemStat
             stopKeyboardCodeViewerCommand,
             downloadCommand,
             closeDownloaderCommand,
-            doDownloadCommand;
+            doDownloadCommand,
+            directKeyboardCommand;
 
     Command helpCommand = null,
             closeHelpCommand = null,
@@ -79,6 +80,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener, ItemStat
                 keyboardCodeRecord = null;
 
     int availableSize = 0;
+    boolean fromMainDisp = false;
 
     public MmlMIDlet()
     {
@@ -100,6 +102,8 @@ public final class MmlMIDlet extends MIDlet implements CommandListener, ItemStat
         mainDisp.addCommand(newCommand);
         downloadCommand = new Command("HTTP", Command.SCREEN, 3);
         mainDisp.addCommand(downloadCommand);
+        directKeyboardCommand = new Command("KEYBD", Command.SCREEN, 4);
+        mainDisp.addCommand(directKeyboardCommand);
 
         titleCancelCommand = new Command("CANCEL", Command.CANCEL, 1);
         titleBox.addCommand(titleCancelCommand);
@@ -323,6 +327,11 @@ public final class MmlMIDlet extends MIDlet implements CommandListener, ItemStat
             {
                 Display.getDisplay(this).setCurrent(downloader);
             }
+            else if (cmd == directKeyboardCommand)
+            {
+                fromMainDisp = true;
+                Display.getDisplay(this).setCurrent(keyboard);
+            }
             else if (cmd == List.SELECT_COMMAND)
             {
                 loadMml();
@@ -430,7 +439,15 @@ public final class MmlMIDlet extends MIDlet implements CommandListener, ItemStat
         {
             if (cmd == closeKeyboardCommand)
             {
-                Display.getDisplay(this).setCurrent(codingBox);
+                if (fromMainDisp)
+                {
+                    fromMainDisp = false;
+                    Display.getDisplay(this).setCurrent(mainDisp);
+                }
+                else
+                {
+                    Display.getDisplay(this).setCurrent(codingBox);
+                }
             }
             else if (cmd == clearKeyboardCommand)
             {
