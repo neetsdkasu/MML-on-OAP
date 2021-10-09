@@ -227,6 +227,11 @@ public final class MmlMIDlet extends MIDlet implements CommandListener, ItemStat
     // @Override MIDlet.destroyApp
     protected void destroyApp(boolean unconditional) throws MIDletStateChangeException
     {
+        cleanUp();
+    }
+
+    private void cleanUp()
+    {
         if (keyboardCodeRecord != null)
         {
             byte[] data = keyboard.getKeyboardCodeForSave();
@@ -310,6 +315,7 @@ public final class MmlMIDlet extends MIDlet implements CommandListener, ItemStat
         {
             if (cmd == exitCommand)
             {
+                cleanUp();
                 notifyDestroyed();
             }
             else if (cmd == newCommand)
