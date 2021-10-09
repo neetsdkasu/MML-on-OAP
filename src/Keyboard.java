@@ -819,12 +819,25 @@ final class Keyboard extends Canvas
                 if (code[i] != null) { len++; }
             }
             dos.writeByte(len);
-            int pos = codeInsertPos;
-            for (int i = 0; i < code.length; i++)
+            if (len < code.length) // codeInsertPos == 0
             {
-                if (code[i] != null)
+                for (int i = 0; i < code.length; i++)
                 {
-                    dos.writeUTF(code[i]);
+                    if (code[i] != null)
+                    {
+                        dos.writeUTF(code[i]);
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < code.length; i++)
+                {
+                    int pos = (codeInsertPos + i) & 63;
+                    if (code[pos] != null)
+                    {
+                        dos.writeUTF(code[pos]);
+                    }
                 }
             }
             dos.writeUTF(tempCode.toString());
