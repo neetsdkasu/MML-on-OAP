@@ -624,7 +624,12 @@ final class Keyboard extends Canvas
                 len += 2;
                 break;
         }
-        if (40 < tempCode.length() + len)
+        int tempo_len = 0;
+        if (senseMode && lastTempo != curTempo)
+        {
+            tempo_len = 4;
+        }
+        if (40 < tempCode.length() + len + tempo_len)
         {
             code[codeInsertPos] = tempCode.toString();
             codeInsertPos = (codeInsertPos + 1) & 63;
@@ -632,6 +637,13 @@ final class Keyboard extends Canvas
             tempCode.setLength(0);
         }
         lastTempCodeLength = tempCode.length();
+        if (tempo_len != 0)
+        {
+            tempCode.append('T')
+                .append(TEMPO.charAt((curTempo << 2) + 1))
+                .append(TEMPO.charAt((curTempo << 2) + 2))
+                .append(TEMPO.charAt((curTempo << 2) + 3));
+        }
         if (lastVolume != volume)
         {
             tempCode.append('V')
@@ -765,7 +777,13 @@ final class Keyboard extends Canvas
             int lastOct = (int)dis.readByte();
             int lastVol = (int)dis.readByte();
             int lastTCLen = dis.readInt();
-            int len = (int)dis.readByte();
+            int len = (int)dis.readByte() & 0x7F;
+            if (len == 0x7F)
+            {
+                lastTempo = (int)dis.readByte();
+                curTempo = lastTempo;
+                len = (int)dis.readByte();
+            }
             for (int i = 0; i < len; i++)
             {
                 code[i] = dis.readUTF();
@@ -818,6 +836,8 @@ final class Keyboard extends Canvas
             {
                 if (code[i] != null) { len++; }
             }
+            dos.writeByte(0x7F);
+            dos.writeByte(lastTempo);
             dos.writeByte(len);
             if (len < code.length) // codeInsertPos == 0
             {
