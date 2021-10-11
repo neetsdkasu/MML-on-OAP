@@ -36,8 +36,8 @@ final class Keyboard extends Canvas
     long pressedTime = 0L;
     int senseNote = -1;
     int backupLength = 5;
-    int lastTempo = 4;
-    int curTempo = 4;
+    int lastTempo = 12;
+    int curTempo = 8;
 
     Keyboard()
     {
@@ -426,6 +426,7 @@ final class Keyboard extends Canvas
     {
         if (senseMode)
         {
+            long curTime = System.currentTimeMillis();
             int tmpNote = -1;
             switch (keyCode)
             {
@@ -459,7 +460,7 @@ final class Keyboard extends Canvas
             }
             if (tmpNote != -1 && tmpNote == senseNote)
             {
-                if (updateSenseNote(System.currentTimeMillis()))
+                if (updateSenseNote(curTime))
                 {
                     lastTempo = curTempo;
                 }
@@ -478,6 +479,7 @@ final class Keyboard extends Canvas
     {
         if (senseMode)
         {
+            long curTime = System.currentTimeMillis();
             int tmpNote = -1;
             switch (keyCode)
             {
@@ -511,39 +513,92 @@ final class Keyboard extends Canvas
             }
             if (tmpNote != -1 && tmpNote == senseNote)
             {
-                updateSenseNote(System.currentTimeMillis());
+                updateSenseNote(curTime);
             }
         }
     }
 
+    // 250*reso/BPM (msec)
+    // BPM  = Tempo (beat/min)
+    //  0) L1.  = 1440 (reso)
+    //              1200
+    //  1) L1   = 960 (reso)
+    //              840
+    //  2) L2.  = 720 (reso)
+    //              600
+    //  3) L2   = 480 (reso)
+    //              420
+    //  4) L4.  = 360
+    //              340
+    //  5) L3   = 320
+    //              280
+    //  6) L4   = 240
+    //              210
+    //  7) L8.  = 180
+    //              170
+    //  8) L6   = 160
+    //              140
+    //  9) L8   = 120
+    //              105
+    // 10) L16. = 90
+    //              85
+    // 11) L12  = 80
+    //              70
+    // 12) L16  = 60
+    //              53
+    // 13) L32. = 45
+    //              43
+    // 14) L24  = 40
+    //              35
+    // 15) L32  = 30
     boolean updateSenseNote(long curTime)
     {
         if (senseNote == -1) { return false; }
-        long interval = curTime - pressedTime;
-        if (interval < (((1000L >> 4) + (1000L >> 3)) >> 1))
+        long interval = (curTime - pressedTime) * (long)(curTempo * 5 + 60);
+        int tmpLength;
+        if (interval < 250L * 170L) // L32 L24 L32. L16 L12 L16. L8 L6
         {
-            length = 11; // 32th note (T=120, 1/16 sec)
+            if (interval < 250L * 70L) // L32 L24 L32. L16
+            {
+                if (interval < 250L * 43L) // L32 L24
+                {
+                    tmpLength = (interval < 250L * 35L) ? 15 : 14;
+                }
+                else // L32. L16
+                {
+                    tmpLength = (interval < 250L * 53L) ? 13 : 12;
+                }
+            }
+            else if (interval < 250L * 105L) // L12 L16.
+            {
+                tmpLength = (interval < 250L * 85L) ? 11 : 10;
+            }
+            else // L8 L6
+            {
+                tmpLength = (interval < 250L * 140L) ? 9 : 8;
+            }
         }
-        else if (interval < (((1000L >> 3) + (1000L >> 2)) >> 1))
+        else if (interval < 250L * 420L) // L8. L4 L3 L4.
         {
-            length = 9; // 16th note (T=120, 1/8 sec)
+            if (interval < 250L * 280L) // L8. L4
+            {
+                tmpLength = (interval < 250L * 210L) ? 7 : 6;
+            }
+            else // L3 L4.
+            {
+                tmpLength = (interval < 250L * 340L) ? 5 : 4;
+            }
         }
-        else if (interval < (((1000L >> 2) + (1000L >> 1)) >> 1))
+        else if (interval < 250L * 840L) // L2 L2.
         {
-            length = 7; // 8th note (T=120, 1/4 sec)
+            tmpLength = (interval < 250L * 600L) ? 3 : 2;
         }
-        else if (interval < (((1000L >> 1) + (1000L >> 0)) >> 1))
+        else // L1 L1.
         {
-            length = 5; // quarter note (T=120, 1/2 sec)
+            tmpLength = (interval < 250L * 1200L) ? 1 : 0;
         }
-        else if (interval < ((1000L + 2000L) >> 1))
-        {
-            length = 3; // half note (T=120, 1 sec)
-        }
-        else
-        {
-            length = 1; // whole note (T=120, 2 sec)
-        }
+        if (tmpLength == length) { return false; }
+        length = tmpLength;
         tempCode.setLength(lastTempCodeLength);
         lastTempCodeLength = -1;
         if (senseNote < 0)
@@ -757,6 +812,7 @@ final class Keyboard extends Canvas
         codeCount = 0;
         lastOctave = 5;
         lastVolume = 9;
+        lastTempo = 12;
         lastTempCodeLength = -1;
         tempCode.setLength(0);
         repaint(0, 0, 240, 60);
