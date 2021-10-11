@@ -521,81 +521,81 @@ final class Keyboard extends Canvas
     // 250*reso/BPM (msec)
     // BPM  = Tempo (beat/min)
     //  0) L1.  = 1440 (reso)
-    //              1200
+    //              1056
     //  1) L1   = 960 (reso)
-    //              840
+    //              792
     //  2) L2.  = 720 (reso)
-    //              600
+    //              528
     //  3) L2   = 480 (reso)
-    //              420
+    //              396
     //  4) L4.  = 360
-    //              340
+    //              352
     //  5) L3   = 320
-    //              280
+    //              264
     //  6) L4   = 240
-    //              210
+    //              198
     //  7) L8.  = 180
-    //              170
+    //              176
     //  8) L6   = 160
-    //              140
+    //              132
     //  9) L8   = 120
-    //              105
+    //              99
     // 10) L16. = 90
-    //              85
+    //              88
     // 11) L12  = 80
-    //              70
+    //              66
     // 12) L16  = 60
-    //              53
+    //              50
     // 13) L32. = 45
-    //              43
+    //              44
     // 14) L24  = 40
-    //              35
+    //              33
     // 15) L32  = 30
     boolean updateSenseNote(long curTime)
     {
         if (senseNote == -1) { return false; }
         long interval = (curTime - pressedTime) * (long)(curTempo * 5 + 60);
         int tmpLength;
-        if (interval < 250L * 170L) // L32 L24 L32. L16 L12 L16. L8 L6
+        if (interval < 250L * 176L) // L32 L24 L32. L16 L12 L16. L8 L6
         {
-            if (interval < 250L * 70L) // L32 L24 L32. L16
+            if (interval < 250L * 66L) // L32 L24 L32. L16
             {
-                if (interval < 250L * 43L) // L32 L24
+                if (interval < 250L * 44L) // L32 L24
                 {
-                    tmpLength = (interval < 250L * 35L) ? 15 : 14;
+                    tmpLength = (interval < 250L * 33L) ? 15 : 14;
                 }
                 else // L32. L16
                 {
-                    tmpLength = (interval < 250L * 53L) ? 13 : 12;
+                    tmpLength = (interval < 250L * 50L) ? 13 : 12;
                 }
             }
-            else if (interval < 250L * 105L) // L12 L16.
+            else if (interval < 250L * 99L) // L12 L16.
             {
-                tmpLength = (interval < 250L * 85L) ? 11 : 10;
+                tmpLength = (interval < 250L * 88L) ? 11 : 10;
             }
             else // L8 L6
             {
-                tmpLength = (interval < 250L * 140L) ? 9 : 8;
+                tmpLength = (interval < 250L * 132L) ? 9 : 8;
             }
         }
-        else if (interval < 250L * 420L) // L8. L4 L3 L4.
+        else if (interval < 250L * 396L) // L8. L4 L3 L4.
         {
-            if (interval < 250L * 280L) // L8. L4
+            if (interval < 250L * 264L) // L8. L4
             {
-                tmpLength = (interval < 250L * 210L) ? 7 : 6;
+                tmpLength = (interval < 250L * 198L) ? 7 : 6;
             }
             else // L3 L4.
             {
-                tmpLength = (interval < 250L * 340L) ? 5 : 4;
+                tmpLength = (interval < 250L * 352L) ? 5 : 4;
             }
         }
-        else if (interval < 250L * 840L) // L2 L2.
+        else if (interval < 250L * 792L) // L2 L2.
         {
-            tmpLength = (interval < 250L * 600L) ? 3 : 2;
+            tmpLength = (interval < 250L * 528L) ? 3 : 2;
         }
         else // L1 L1.
         {
-            tmpLength = (interval < 250L * 1200L) ? 1 : 0;
+            tmpLength = (interval < 250L * 1056L) ? 1 : 0;
         }
         if (tmpLength == length) { return false; }
         length = tmpLength;
