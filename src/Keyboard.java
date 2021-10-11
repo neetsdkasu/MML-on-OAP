@@ -10,7 +10,8 @@ final class Keyboard extends Canvas
     static final String
         OCTAVE = "O-1O0 O1 O2 O3 O4 O5 O6 O7 O8 O9 ",
         LENGTH = "L1. L1  L2. L2  L4. L4  L8. L8  L16.L16 L32.L32 L3  L6  L12 L24 ",
-        VOLUME = "V10 V20 V30 V40 V50 V60 V70 V80 V90 V100";
+        VOLUME = "V10 V20 V30 V40 V50 V60 V70 V80 V90 V100",
+        TEMPO = "T60 T65 T70 T75 T80 T85 T90 T95 T100T105T110T115T120T125T130T135T140T145T150";
 
     final Font smallFont, mediumFont;
     final Image backgroundImage;
@@ -30,6 +31,13 @@ final class Keyboard extends Canvas
     int lastOctave = 5;
     int lastVolume = 9;
     int lastTempCodeLength = -1;
+
+    boolean senseMode = false;
+    long pressedTime = 0L;
+    int senseNote = -1;
+    int backupLength = 5;
+    int lastTempo = 12;
+    int curTempo = 8;
 
     Keyboard()
     {
@@ -99,7 +107,14 @@ final class Keyboard extends Canvas
 
         g.setColor(0x000000);
         g.drawSubstring(OCTAVE, octave * 3, 3, 12, 130, Graphics.LEFT | Graphics.TOP);
-        g.drawSubstring(LENGTH, length * 4, 4, 12, 150, Graphics.LEFT | Graphics.TOP);
+        if (senseMode)
+        {
+            g.drawSubstring(TEMPO, curTempo * 4, 4, 12, 150, Graphics.LEFT | Graphics.TOP);
+        }
+        else
+        {
+            g.drawSubstring(LENGTH, length * 4, 4, 12, 150, Graphics.LEFT | Graphics.TOP);
+        }
         g.drawSubstring(VOLUME, volume * 4, 4, 12, 170, Graphics.LEFT | Graphics.TOP);
 
         if (0 < octave)
@@ -111,13 +126,27 @@ final class Keyboard extends Canvas
             g.drawSubstring(OCTAVE, (octave + 1) * 3, 3, 147, 142, Graphics.LEFT | Graphics.TOP);
         }
 
-        if (0 < length)
+        if (senseMode)
         {
-            g.drawSubstring(LENGTH, (length - 1) * 4, 4, 105, 128, Graphics.LEFT | Graphics.TOP);
+            if (0 < curTempo)
+            {
+                g.drawSubstring(TEMPO, (curTempo - 1) * 4, 4, 105, 128, Graphics.LEFT | Graphics.TOP);
+            }
+            if (curTempo < 18)
+            {
+                g.drawSubstring(TEMPO, (curTempo + 1) * 4, 4, 105, 154, Graphics.LEFT | Graphics.TOP);
+            }
         }
-        if (length < 15)
+        else
         {
-            g.drawSubstring(LENGTH, (length + 1) * 4, 4, 105, 154, Graphics.LEFT | Graphics.TOP);
+            if (0 < length)
+            {
+                g.drawSubstring(LENGTH, (length - 1) * 4, 4, 105, 128, Graphics.LEFT | Graphics.TOP);
+            }
+            if (length < 15)
+            {
+                g.drawSubstring(LENGTH, (length + 1) * 4, 4, 105, 154, Graphics.LEFT | Graphics.TOP);
+            }
         }
 
         if (key_type == 0)
@@ -165,6 +194,13 @@ final class Keyboard extends Canvas
         if (volume < 9)
         {
             g.drawSubstring(VOLUME, (volume + 1) * 4, 4, 143, 244, Graphics.LEFT | Graphics.TOP);
+        }
+
+        if (senseMode)
+        {
+            g.drawString("sense", 10, 248, Graphics.LEFT | Graphics.TOP);
+        } else {
+            g.drawString("fixed", 10, 248, Graphics.LEFT | Graphics.TOP);
         }
 
         switch (note)
@@ -227,10 +263,21 @@ final class Keyboard extends Canvas
     // @Override Canvas.keyPressed
     protected void keyPressed(int keyCode)
     {
+        if (senseMode)
+        {
+            long curTime = System.currentTimeMillis();
+            if (updateSenseNote(curTime))
+            {
+                lastTempo = curTempo;
+            }
+            pressedTime = curTime;
+            length = 11;
+        }
         note = -1;
         switch (keyCode)
         {
             case KEY_NUM0:
+                if (senseMode) { senseNote = -2; }
                 addRest();
                 repaint(0, 0, 240, 60);
                 break;
@@ -263,14 +310,30 @@ final class Keyboard extends Canvas
                 repaint(0, 60, 240, 208);
                 break;
             case -1: // KEY_UP
-                if (0 < length)
+                if (senseMode)
+                {
+                    if (0 < curTempo)
+                    {
+                        curTempo -= 1;
+                        repaint(0, 120, 160, 60);
+                    }
+                }
+                else if (0 < length)
                 {
                     length -= 1;
                     repaint(0, 120, 160, 60);
                 }
                 break;
             case -2: // KEY_DOWN
-                if (length < 15)
+                if (senseMode)
+                {
+                    if (curTempo < 18)
+                    {
+                        curTempo += 1;
+                        repaint(0, 120, 160, 60);
+                    }
+                }
+                else if (length < 15)
                 {
                     length += 1;
                     repaint(0, 120, 160, 60);
@@ -326,12 +389,27 @@ final class Keyboard extends Canvas
                     lastTempCodeLength = -1;
                 }
                 break;
+            case -10: // KEY_TEL
+                if (senseMode)
+                {
+                    length = backupLength;
+                }
+                else
+                {
+                    backupLength = length;
+                    length = 7;
+                }
+                senseNote = -1;
+                senseMode = !senseMode;
+                repaint();
+                break;
         }
         if (note >= 0)
         {
             int note_value = note + octave * 12;
             if (note_value <= 127)
             {
+                if (senseMode) { senseNote = note; }
                 try { Manager.playTone(note_value, 200, 100); } catch (Exception ex) {}
                 addNote(note);
                 repaint();
@@ -346,6 +424,49 @@ final class Keyboard extends Canvas
     // @Override Canvas.keyReleased
     protected void keyReleased(int keyCode)
     {
+        if (senseMode)
+        {
+            long curTime = System.currentTimeMillis();
+            int tmpNote = -1;
+            switch (keyCode)
+            {
+                case KEY_NUM0:
+                    tmpNote = -2;
+                    break;
+                case KEY_NUM1:
+                    tmpNote = 0 + key_type;
+                    break;
+                case KEY_NUM2:
+                    tmpNote = 2 + key_type;
+                    break;
+                case KEY_NUM3:
+                    if (key_type == 0) { tmpNote = 4; }
+                    break;
+                case KEY_NUM4:
+                    tmpNote = 5 + key_type;
+                    break;
+                case KEY_NUM5:
+                    tmpNote = 7 + key_type;
+                    break;
+                case KEY_NUM6:
+                    tmpNote = 9 + key_type;
+                    break;
+                case KEY_NUM7:
+                    if (key_type == 0) { tmpNote = 11; }
+                    break;
+                case KEY_NUM8:
+                    if (key_type == 0) { tmpNote = 12; }
+                    break;
+            }
+            if (tmpNote != -1 && tmpNote == senseNote)
+            {
+                if (updateSenseNote(curTime))
+                {
+                    lastTempo = curTempo;
+                }
+                senseNote = -1;
+            }
+        }
         if (note >= 0)
         {
             note = -1;
@@ -353,9 +474,153 @@ final class Keyboard extends Canvas
         }
     }
 
+    // @Override Canvas.keyRepeated
+    protected void keyRepeated(int keyCode)
+    {
+        if (senseMode)
+        {
+            long curTime = System.currentTimeMillis();
+            int tmpNote = -1;
+            switch (keyCode)
+            {
+                case KEY_NUM0:
+                    tmpNote = -2;
+                    break;
+                case KEY_NUM1:
+                    tmpNote = 0 + key_type;
+                    break;
+                case KEY_NUM2:
+                    tmpNote = 2 + key_type;
+                    break;
+                case KEY_NUM3:
+                    if (key_type == 0) { tmpNote = 4; }
+                    break;
+                case KEY_NUM4:
+                    tmpNote = 5 + key_type;
+                    break;
+                case KEY_NUM5:
+                    tmpNote = 7 + key_type;
+                    break;
+                case KEY_NUM6:
+                    tmpNote = 9 + key_type;
+                    break;
+                case KEY_NUM7:
+                    if (key_type == 0) { tmpNote = 11; }
+                    break;
+                case KEY_NUM8:
+                    if (key_type == 0) { tmpNote = 12; }
+                    break;
+            }
+            if (tmpNote != -1 && tmpNote == senseNote)
+            {
+                updateSenseNote(curTime);
+            }
+        }
+    }
+
+    // 250*reso/BPM (msec)
+    // BPM  = Tempo (beat/min)
+    //  0) L1.  = 1440 (reso)
+    //              1056
+    //  1) L1   = 960 (reso)
+    //              792
+    //  2) L2.  = 720 (reso)
+    //              528
+    //  3) L2   = 480 (reso)
+    //              396
+    //  4) L4.  = 360
+    //              352
+    //  5) L3   = 320
+    //              264
+    //  6) L4   = 240
+    //              198
+    //  7) L8.  = 180
+    //              176
+    //  8) L6   = 160
+    //              132
+    //  9) L8   = 120
+    //              99
+    // 10) L16. = 90
+    //              88
+    // 11) L12  = 80
+    //              66
+    // 12) L16  = 60
+    //              50
+    // 13) L32. = 45
+    //              44
+    // 14) L24  = 40
+    //              33
+    // 15) L32  = 30
+    boolean updateSenseNote(long curTime)
+    {
+        if (senseNote == -1) { return false; }
+        long interval = (curTime - pressedTime) * (long)(curTempo * 5 + 60);
+        int tmpLength;
+        if (interval < 250L * 176L) // L32 L24 L32. L16 L12 L16. L8 L6
+        {
+            if (interval < 250L * 66L) // L32 L24 L32. L16
+            {
+                if (interval < 250L * 44L) // L32 L24
+                {
+                    tmpLength = (interval < 250L * 33L) ? 15 : 14;
+                }
+                else // L32. L16
+                {
+                    tmpLength = (interval < 250L * 50L) ? 13 : 12;
+                }
+            }
+            else if (interval < 250L * 99L) // L12 L16.
+            {
+                tmpLength = (interval < 250L * 88L) ? 11 : 10;
+            }
+            else // L8 L6
+            {
+                tmpLength = (interval < 250L * 132L) ? 9 : 8;
+            }
+        }
+        else if (interval < 250L * 396L) // L8. L4 L3 L4.
+        {
+            if (interval < 250L * 264L) // L8. L4
+            {
+                tmpLength = (interval < 250L * 198L) ? 7 : 6;
+            }
+            else // L3 L4.
+            {
+                tmpLength = (interval < 250L * 352L) ? 5 : 4;
+            }
+        }
+        else if (interval < 250L * 792L) // L2 L2.
+        {
+            tmpLength = (interval < 250L * 528L) ? 3 : 2;
+        }
+        else // L1 L1.
+        {
+            tmpLength = (interval < 250L * 1056L) ? 1 : 0;
+        }
+        if (tmpLength == length) { return false; }
+        length = tmpLength;
+        tempCode.setLength(lastTempCodeLength);
+        lastTempCodeLength = -1;
+        if (senseNote < 0)
+        {
+            addRest();
+        }
+        else
+        {
+            addNote(senseNote);
+        }
+        repaint(0, 0, 240, 60);
+        return true;
+    }
+
     void addRest()
     {
-        if (40 < tempCode.length() + 4)
+        int tempo_len = 0;
+        if (senseMode && lastTempo != curTempo)
+        {
+            tempo_len = 4;
+        }
+        if (40 < tempCode.length() + 4 + tempo_len)
         {
             code[codeInsertPos] = tempCode.toString();
             codeInsertPos = (codeInsertPos + 1) & 63;
@@ -363,6 +628,13 @@ final class Keyboard extends Canvas
             tempCode.setLength(0);
         }
         lastTempCodeLength = tempCode.length();
+        if (tempo_len != 0)
+        {
+            tempCode.append('T')
+                .append(TEMPO.charAt((curTempo << 2) + 1))
+                .append(TEMPO.charAt((curTempo << 2) + 2))
+                .append(TEMPO.charAt((curTempo << 2) + 3));
+        }
         tempCode.append('R')
             .append(LENGTH.charAt((length << 2) + 1))
             .append(LENGTH.charAt((length << 2) + 2))
@@ -407,7 +679,12 @@ final class Keyboard extends Canvas
                 len += 2;
                 break;
         }
-        if (40 < tempCode.length() + len)
+        int tempo_len = 0;
+        if (senseMode && lastTempo != curTempo)
+        {
+            tempo_len = 4;
+        }
+        if (40 < tempCode.length() + len + tempo_len)
         {
             code[codeInsertPos] = tempCode.toString();
             codeInsertPos = (codeInsertPos + 1) & 63;
@@ -415,9 +692,16 @@ final class Keyboard extends Canvas
             tempCode.setLength(0);
         }
         lastTempCodeLength = tempCode.length();
+        if (tempo_len != 0)
+        {
+            tempCode.append('T')
+                .append(TEMPO.charAt((curTempo << 2) + 1))
+                .append(TEMPO.charAt((curTempo << 2) + 2))
+                .append(TEMPO.charAt((curTempo << 2) + 3));
+        }
         if (lastVolume != volume)
         {
-            tempCode.append(VOLUME.charAt(volume << 2))
+            tempCode.append('V')
                 .append(VOLUME.charAt((volume << 2) + 1))
                 .append(VOLUME.charAt((volume << 2) + 2))
                 .append(VOLUME.charAt((volume << 2) + 3));
@@ -528,6 +812,7 @@ final class Keyboard extends Canvas
         codeCount = 0;
         lastOctave = 5;
         lastVolume = 9;
+        lastTempo = 12;
         lastTempCodeLength = -1;
         tempCode.setLength(0);
         repaint(0, 0, 240, 60);
@@ -548,7 +833,13 @@ final class Keyboard extends Canvas
             int lastOct = (int)dis.readByte();
             int lastVol = (int)dis.readByte();
             int lastTCLen = dis.readInt();
-            int len = (int)dis.readByte();
+            int len = (int)dis.readByte() & 0x7F;
+            if (len == 0x7F)
+            {
+                lastTempo = (int)dis.readByte();
+                curTempo = lastTempo;
+                len = (int)dis.readByte();
+            }
             for (int i = 0; i < len; i++)
             {
                 code[i] = dis.readUTF();
@@ -601,6 +892,8 @@ final class Keyboard extends Canvas
             {
                 if (code[i] != null) { len++; }
             }
+            dos.writeByte(0x7F);
+            dos.writeByte(lastTempo);
             dos.writeByte(len);
             if (len < code.length) // codeInsertPos == 0
             {
@@ -721,6 +1014,14 @@ final class Keyboard extends Canvas
         g.fillRoundRect(offX, offY, w, h, 10, 10);
         g.setColor(0x000000);
         g.drawRoundRect(offX, offY, w, h, 10, 10);
+
+        g.setColor(0xD0D0D0);
+        g.fillRoundRect(2, 212, 42, 22, 10, 10);
+        g.setColor(0x000000);
+        g.drawRoundRect(2, 212, 42, 22, 10, 10);
+        g.setFont(mediumFont);
+        g.drawString("TEL", 10, 214, Graphics.LEFT | Graphics.TOP);
+        g.drawString("mode:", 4, 232, Graphics.LEFT | Graphics.TOP);
 
         return Image.createImage(image);
     }
