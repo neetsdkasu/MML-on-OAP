@@ -199,7 +199,9 @@ final class Keyboard extends Canvas
         if (senseMode)
         {
             g.drawString("sense", 10, 248, Graphics.LEFT | Graphics.TOP);
-        } else {
+        }
+        else
+        {
             g.drawString("fixed", 10, 248, Graphics.LEFT | Graphics.TOP);
         }
 
@@ -266,9 +268,11 @@ final class Keyboard extends Canvas
         if (senseMode)
         {
             long curTime = System.currentTimeMillis();
-            if (updateSenseNote(curTime))
+            updateSenseNote(curTime);
+            if (senseNote != -1)
             {
                 lastTempo = curTempo;
+                senseNote = -1;
             }
             pressedTime = curTime;
             length = 11;
@@ -460,11 +464,12 @@ final class Keyboard extends Canvas
             }
             if (tmpNote != -1 && tmpNote == senseNote)
             {
-                if (updateSenseNote(curTime))
+                updateSenseNote(curTime);
+                if (senseNote != -1)
                 {
                     lastTempo = curTempo;
+                    senseNote = -1;
                 }
-                senseNote = -1;
             }
         }
         if (note >= 0)
@@ -551,9 +556,9 @@ final class Keyboard extends Canvas
     // 14) L24  = 40
     //              33
     // 15) L32  = 30
-    boolean updateSenseNote(long curTime)
+    void updateSenseNote(long curTime)
     {
-        if (senseNote == -1) { return false; }
+        if (senseNote == -1) { return; }
         long interval = (curTime - pressedTime) * (long)(curTempo * 5 + 60);
         int tmpLength;
         if (interval < 250L * 176L) // L32 L24 L32. L16 L12 L16. L8 L6
@@ -597,7 +602,7 @@ final class Keyboard extends Canvas
         {
             tmpLength = (interval < 250L * 1056L) ? 1 : 0;
         }
-        if (tmpLength == length) { return false; }
+        if (tmpLength == length) { return; }
         length = tmpLength;
         tempCode.setLength(lastTempCodeLength);
         lastTempCodeLength = -1;
@@ -610,7 +615,6 @@ final class Keyboard extends Canvas
             addNote(senseNote);
         }
         repaint(0, 0, 240, 60);
-        return true;
     }
 
     void addRest()
