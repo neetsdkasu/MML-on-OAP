@@ -199,7 +199,9 @@ final class Keyboard extends Canvas
         if (senseMode)
         {
             g.drawString("sense", 10, 248, Graphics.LEFT | Graphics.TOP);
-        } else {
+        }
+        else
+        {
             g.drawString("fixed", 10, 248, Graphics.LEFT | Graphics.TOP);
         }
 
