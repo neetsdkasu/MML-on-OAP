@@ -207,6 +207,7 @@ final class Midi
         }
 
         // end of track (FF 2F 00)
+        dos.writeByte(0); // delta time (= 0)
         dos.writeByte(0xFF);
         dos.writeByte(0x2F);
         dos.writeByte(0x00);

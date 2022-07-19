@@ -1,10 +1,10 @@
 MIDlet-1: MMLonOAP, MMLonOAP.png, MmlMIDlet
 MIDlet-Data-Size: 32768
 MIDlet-Description: MML on OAP
-MIDlet-Jar-Size: 27021
+MIDlet-Jar-Size: 27020
 MIDlet-Jar-URL: MMLonOAP.jar
 MIDlet-Name: MMLonOAP
 MIDlet-Vendor: Leonardone
-MIDlet-Version: 1.6
+MIDlet-Version: 1.7
 MicroEdition-Configuration: CLDC-1.1
 MicroEdition-Profile: MIDP-2.0
